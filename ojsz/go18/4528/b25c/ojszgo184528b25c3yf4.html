@@ -1,0 +1,43 @@
+<div id='dvr-ui'></div>
+<div class='wrap dvr-wrap'>
+  <div class='img-wrap'></div>
+  <div class='video-wrap'><video class="video-wrap-video imgwidth" controls="true" autoplay="true" allowfullscreen="true" width="100%" height="100%" style="background-color:black;"></video></div>
+  <div class="snap-wrap" width="100%" height="100%"><img class="snap-wrap-img  imgwidth"></div>
+  <div class='dvr-navbar hideme'>
+    <div class='navbar navbar-dark'>
+      <div class='navbar-tab selected tab-live' data-id='tab1'>Live</div>
+      <div class='navbar-tab tab-dvr' data-id='tab2'>DVR</div>
+      <div class='navbar-tab tab-events' data-id='tab3'>Events</div>
+    </div>
+    <div class='tab-content tab2'>
+      <div class='dvr-images'></div>
+      <center>
+        <div class='rvctable'>
+          <div class='dvryearselect timeselect'></div>
+          <div class='dvrmonthselect timeselect'></div>
+          <div class='dvrdateselect timeselect'></div>
+          <div class='dvrhourselect timeselect'></div>:&nbsp;&nbsp;
+          <div class='dvrminselect timeselect'></div>:&nbsp;&nbsp;
+          <div class='dvrsecselect timeselect'></div>
+        </div>
+        <div class='rvctable'>
+          <div class='textinputlabel durationsliderlable'>Duration:
+            <input type='text' class='durationslidervalue'>
+          </div>
+          <input class="plainslider durationslider" type="range" min="5" max="300" value="5" tabindex="0">
+        </div>
+        <div class='rvctable'>
+          <button class="coloredbutton dvrplaybutton">
+            <img src="../app/asset/app/play_icon.png" class="mediumicon">
+          </button>
+          <button class="coloredbutton dvrdownloadbutton">
+            <a class='download_selected' download><img src="../app/asset/app/download_icon.png" class="mediumicon"></a>
+          </button>            
+        </div>
+      </center>
+    </div>
+    <div class='tab-content tab3'>
+      <div class='event-images'></div>
+    </div>
+  </div>
+</div>

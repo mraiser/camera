@@ -1,0 +1,23 @@
+.inline {
+  display:inline-block;
+}
+
+#snapshot, #keyframe {
+  min-width:300px;
+  max-width:100%;
+  max-height:350px;
+  vertical-align:top;
+}
+
+.bottomspace{
+  margin-bottom:10px;
+}
+
+.padsides {
+  margin-left:16px;
+  margin-right:16px;
+}
+
+.rvs-sense, .rvs-noise {
+  width:100% !important;
+}

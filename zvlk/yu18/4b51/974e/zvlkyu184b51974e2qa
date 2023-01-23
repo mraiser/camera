@@ -1,0 +1,1 @@
+{"data":{"attachmentkeynames":["rs"],"cmd":"keyframes","ctl":"camera","desc":"","import":"use crate::camera::camera::settings::settings;\nuse ndata::data::Data;\n","lib":"camera","params":[{"name":"nn_path","type":"String"}],"returntype":"File","type":"rust"},"id":"zvlkyu184b51974e2qa","readers":[],"time":1669557693491,"username":"system","writers":[]}

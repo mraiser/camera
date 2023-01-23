@@ -1,0 +1,31 @@
+.camtitlebar{
+  padding: 20px;
+  font-size: large;
+  color: #83bc00;
+  position:absolute;
+  z-index:1;
+  background-color:#00000088
+}
+
+.camwrap{
+  background-color:black;
+  position:absolute;
+  width:100%;
+  height:100%;
+}
+
+.cammain{
+  position:absolute;
+  top:62px;
+  left:0px;
+  bottom:0px;
+  right:0px;
+}
+
+#dvrgoeshere {
+  position:fixed;
+  top:62px;
+  left:0px;
+  right:0px;
+  bottom:0px;
+}

@@ -1,0 +1,58 @@
+.live-wrap {
+  height:100%;
+  position:relative;
+  text-align:center;
+}
+
+.live-img {
+  position:relative;
+  max-width:100%;
+  max-height:100%;
+  margin-left:auto;
+  margin-right:auto;
+}
+
+.live-img-ctrls{
+  position:absolute;
+  right:20px;
+  bottom:20px;
+  padding:5px;
+  background-color:#88888888;
+}
+
+.fullscreen-button, .fullscreen-exit-button{
+  width:32px;
+  height:32px;
+  background-image: url(../app/asset/app/fullscreen_icon.png);
+  background-size:cover;
+  display:inline-block;
+}
+
+.fullscreen-button:hover, .fullscreen-exit-button:hover{
+  background-image: url(../app/asset/app/fullscreen_icon_hover.png);
+}
+
+.fullscreen-exit-button{
+  background-image: url(../app/asset/app/fullscreen_exit_icon.png);
+  display:none;
+}
+
+.fullscreen-exit-button:hover{
+  background-image: url(../app/asset/app/fullscreen_exit_icon_hover.png);
+}
+
+.dvr-settings-button{
+  width:32px;
+  height:32px;
+  display:inline-block;
+  margin-right:20px;
+}
+
+.settings-popup{
+  display:none;
+  width:1024px;
+  max-width:90%;
+  height:620px;
+  background-color:white;
+  color:black;
+}

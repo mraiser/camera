@@ -1,0 +1,1 @@
+{"data":{"attachmentkeynames":["rs"],"cmd":"available","ctl":"camera","desc":"","import":"use ndata::dataarray::DataArray;\nuse flowlang::flowlang::system::system_call::system_call;\n","lib":"camera","params":[],"returntype":"JSONObject","type":"rust"},"id":"vjpitv1843dfcd472td7","readers":[],"time":1669065532164,"username":"system","writers":[]}

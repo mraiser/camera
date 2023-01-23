@@ -1,0 +1,64 @@
+<i class='hideme camera-settings-button'>Turn DVR off and save to edit camera settings</i>
+<div id='camera-settings-go-here'></div>
+<hr>
+<br>
+<table border='0' cellpadding='0' cellspacing='0' width='100%' style='color:black;'>
+  <tr>
+    <td width='280' style='vertical-align:top;'>
+      <label for="dvr-switch">
+        <div class="switch">
+          <input id="dvr-switch" type="checkbox" class="switch-input" />
+          <span class="switch-label">DVR</span>
+        </div>
+        DVR
+      </label>
+      <br><br>
+      <div class='dvr-settings-go-here hideme' style='white-space:nowrap;'>
+        <div class='textinputlabel'>Storage Directory</div>
+        <input type='text' class='textinput storagedir' placeholder='Path to storage directory'>
+        <br><br>
+        <div class='textinputlabel'>Select Frame Rate</div>
+        <select name='select-fps' class='textinput' id='select-fps'>
+          <option>30</option>
+          <option>25</option>
+          <option>20</option>
+          <option>15</option>
+          <option>10</option>
+          <option>5</option>
+        </select> 
+        <br><br>
+        <label for="motion-switch">
+          <div class="switch">
+            <input id="motion-switch" type="checkbox" class="switch-input" />
+            <span class="switch-label">Detect Motion</span>
+          </div>
+          Detect Motion
+        </label>
+        <br><br>
+        <div class='hideme padsides motion-settings'>
+          <div class='longselect'>
+            <div class='textinputlabel bottomspace'>Sensitivity</div>
+            <input class="plainslider rvs-sense" type="range"  min="0" max="11" value="0" tabindex="0">
+          </div>
+          <br>
+          <div class='longselect'>
+            <div class='textinputlabel bottomspace'>Noise Cancellation</div>
+            <input class="plainslider rvs-noise" type="range"  min="0" max="11" value="0" tabindex="0">
+          </div>
+          <br>
+        </div>
+      </div>
+    </td>
+    <td width='20'></td>
+    <td style='vertical-align:top;'>
+      <img id="keyframe" class="hideme">
+      <br><br>
+    </td>
+  </tr>
+</table>
+<i class='hideme dvr-settings-message'>
+  Turn DVR on and save to edit DVR settings
+  <br><br>
+</i>
+<div class='hide-on-cam hideme'><hr><br></div>
+<button class='coloredbutton save-camera-settings'>Save</button>

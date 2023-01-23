@@ -1,0 +1,126 @@
+.dvr-wrap, .img-wrap, .video-wrap-video {
+  width:100%;
+  height:100%;
+  position:relative;
+  margin-left:auto;
+  margin-right:auto;
+}
+
+.snap-wrap, .video-wrap {
+  display:none;
+  position:absolute;
+  top:0px;
+  left:0px;
+  width:100%;
+  height:100%;
+  text-align:center;
+}
+
+.dvr-navbar {
+  background-color:black;
+}
+
+.event-images, .dvr-images {
+  position:relative;
+  height:110px;
+  width:100%;
+  background-color:#222;
+  white-space:nowrap;
+  overflow-x:scroll;
+  overflow-y:hidden;
+}
+
+.thumbnail-wrap {
+  display:inline-block;
+  height: 96px;
+  width:auto;
+  position:relative;
+  margin:1px;
+  border:1px white solid;
+}
+
+.thumbnail {
+  height: 96px;
+}
+
+.thumbnail-timestamp {
+  color:#83bc00;
+  font-size:small;
+  position:absolute;
+  bottom:10px;
+  left:10px;
+  text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;
+}
+
+::-webkit-scrollbar {
+  background: black;
+  height: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #83bc00;
+    border-radius: 5px;
+}
+
+.tab-content, .tab-content table {
+  color:white;
+}
+
+.dvryearselect{
+  width:60px;
+}
+
+.dvrmonthselect{
+  width:90px;
+}
+
+.dvrdateselect, .dvrhourselect, .dvrminselect, .dvrsecselect {
+  width:40px;
+}
+
+.dvryearselect, .dvrmonthselect, .dvrdateselect, .dvrhourselect, .dvrminselect, .dvrsecselect {
+  display:inline-block;
+}
+
+.floatrightbutton{
+  float:right;
+  margin-left:20px;
+}
+
+.timeselect select{
+  background-color:black;
+  color: white;
+}
+
+.dvryearselect{
+  width:60px;
+}
+
+.dvrmonthselect{
+  width:90px;
+}
+
+.dvrdateselect, .dvrhourselect, .dvrminselect, .dvrsecselect {
+  width:40px;
+}
+
+.dvryearselect, .dvrmonthselect, .dvrdateselect, .dvrhourselect, .dvrminselect, .dvrsecselect {
+  display:inline-block;
+}
+
+.rvctable {
+  display:inline-block;
+  text-align:left;
+  margin-left:10px;
+  margin-right:10px;
+  margin-top:10px;
+}
+
+.durationslidervalue{
+  color:black;
+  width:40px;
+}
+
+.durationsliderlable{
+  margin-bottom:4px;
+}
