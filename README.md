@@ -23,7 +23,7 @@ These instructions are for Raspberry Pi OS and other flavors of Debian Linux. Th
 
     cd data
     git clone https://github.com/mraiser/camera.git camera
-    cp -R camera/_APPS/camera runtime/camera
+    cp -R camera/_APPS/camera ../runtime/camera
 
 ### Install FFMPEG    
 
