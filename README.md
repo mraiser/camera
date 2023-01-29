@@ -109,6 +109,7 @@ These instructions are for Raspberry Pi OS and other flavors of Debian Linux. Th
     cargo run --release --features=serde_support
 
 OR
+
     # Install and launch Newbound as a service
     printf "[Unit]
     Description=Newbound
