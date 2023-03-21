@@ -13,18 +13,6 @@ These instructions are for Raspberry Pi OS and other flavors of Debian Linux. Th
     
     curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 
-### Install Newbound
-
-    git clone https://github.com/mraiser/newbound.git Newbound
-    cd Newbound
-    cargo build --release --features=serde_support
-
-### Install Newbound Camera
-
-    cd data
-    git clone https://github.com/mraiser/camera.git camera
-    cp -R camera/_APPS/camera ../runtime/camera
-
 ### Install FFMPEG    
 
     sudo apt-get update -qq && sudo apt-get -y install \
@@ -100,6 +88,23 @@ These instructions are for Raspberry Pi OS and other flavors of Debian Linux. Th
     rm -rf ffmpeg_build
     rm -rf ffmpeg_sources
 
+### Install Newbound
+
+    git clone https://github.com/mraiser/newbound.git Newbound
+    cd Newbound
+    cargo build --release --features=serde_support
+
+### Install Newbound Camera
+
+    mkdir github
+    cd github
+    git clone https://github.com/mraiser/camera.git camera
+    cd ../data
+    ln -s ../github/camera/data/camera camera
+    cd ../runtime
+    ln -s ../github/camera/runtime/camera camera
+    cd ../
+
 ### Startup Newbound
 
     # Launch Newbound as an app
@@ -138,7 +143,8 @@ OR
     # Show admin user password
     cat users/admin.properties
 
-# Sample Camera config file (create if not present)
+# Sample Camera config file 
+(created automatically when saving preferences in app)
 
     # Newbound/runtime/camera/botd.properties
     dvr=true
