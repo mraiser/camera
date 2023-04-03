@@ -138,7 +138,8 @@ OR
 ### Activate Camera app
 When Newbound launches for the first time, it will launch the "Applications" app in a web browser with  inactive apps hidden. Click the toggle switch in "Applications" to show the Camera app, select it, then click the "ACTIVATE" button.
 
-# Useful config files (after first run)
+# Useful config files 
+(after first run)
 
     # Show HTTP port
     cat config.properties
