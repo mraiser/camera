@@ -1,3 +1,6 @@
+// lenient: garbage since/limit means 0 (no floor / no cap), never a panic
+let since = since.trim().parse::<i64>().unwrap_or(0);
+let limit = limit.trim().parse::<i64>().unwrap_or(0);
 let settings = settings(Data::DNull);
 let root = settings.get_string("storage");
 let root = Path::new(&root).join("events");

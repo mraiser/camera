@@ -1,3 +1,13 @@
+// URL-facing params arrive as raw strings and must never panic the
+// handler thread (flowlang cast_params aborts on a malformed Integer,
+// and the settings preview retries forever): parse leniently and
+// soft-fail to the no-signal placeholder.
+let width = width.trim().parse::<i64>().unwrap_or(0);
+let height = height.trim().parse::<i64>().unwrap_or(0);
+let rot = rot.trim().parse::<i64>().unwrap_or(0);
+if width <= 0 || height <= 0 {
+  return DataStore::new().root.join("camera").join("_ASSETS").join("no_signal.jpg").into_os_string().into_string().unwrap();
+}
 let t1 = temp_dir().join(unique_session_id()+".jpg");
 let temp = t1.to_owned().into_os_string().into_string().unwrap();
 //println!("temp file {:?}", temp);

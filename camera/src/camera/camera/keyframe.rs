@@ -7,6 +7,7 @@ use chrono::Timelike;
 use std::path::Path;
 use crate::camera::camera::settings::settings;
 use ndata::data::Data;
+use flowlang::datastore::DataStore;
 
 pub fn execute(o: DataObject) -> DataObject {
     use std::panic;
@@ -21,7 +22,7 @@ pub fn execute(o: DataObject) -> DataObject {
         }
     }
     let ax = panic::catch_unwind(panic::AssertUnwindSafe(|| {
-        let arg_0: i64 = o.get_int("timestamp");
+        let arg_0: String = o.get_string("timestamp");
         keyframe(arg_0)
     }));
     match ax {
@@ -54,7 +55,13 @@ pub fn execute(o: DataObject) -> DataObject {
     }
 }
 
-pub fn keyframe(timestamp: i64) -> String {
+pub fn keyframe(timestamp: String) -> String {
+// timestamp arrives raw off the URL (the DVR picker can emit NaN when
+// the archive is empty): parse leniently, soft-fail to no-signal.
+let timestamp = match timestamp.trim().parse::<i64>() {
+  Ok(t) => t,
+  Err(_) => { return DataStore::new().root.join("camera").join("_ASSETS").join("no_signal.jpg").into_os_string().into_string().unwrap(); }
+};
 let settings = settings(Data::DNull);
 let storage = settings.get_string("storage");
 

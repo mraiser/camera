@@ -1,3 +1,9 @@
+// timestamp arrives raw off the URL (the DVR picker can emit NaN when
+// the archive is empty): parse leniently, soft-fail to no-signal.
+let timestamp = match timestamp.trim().parse::<i64>() {
+  Ok(t) => t,
+  Err(_) => { return DataStore::new().root.join("camera").join("_ASSETS").join("no_signal.jpg").into_os_string().into_string().unwrap(); }
+};
 let settings = settings(Data::DNull);
 let storage = settings.get_string("storage");
 

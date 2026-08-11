@@ -9,6 +9,7 @@ use core::time::Duration;
 use crate::camera::camera::available::is_libcamera;
 use crate::camera::camera::available::camera_tool;
 use crate::camera::camera::available::camera_index;
+use flowlang::datastore::DataStore;
 
 pub fn execute(o: DataObject) -> DataObject {
     use std::panic;
@@ -25,9 +26,9 @@ pub fn execute(o: DataObject) -> DataObject {
     let ax = panic::catch_unwind(panic::AssertUnwindSafe(|| {
         let arg_0: String = o.get_string("device");
         let arg_1: String = o.get_string("format");
-        let arg_2: i64 = o.get_int("width");
-        let arg_3: i64 = o.get_int("height");
-        let arg_4: i64 = o.get_int("rot");
+        let arg_2: String = o.get_string("width");
+        let arg_3: String = o.get_string("height");
+        let arg_4: String = o.get_string("rot");
         snapshot(arg_0, arg_1, arg_2, arg_3, arg_4)
     }));
     match ax {
@@ -60,7 +61,17 @@ pub fn execute(o: DataObject) -> DataObject {
     }
 }
 
-pub fn snapshot(device: String, format: String, width: i64, height: i64, rot: i64) -> String {
+pub fn snapshot(device: String, format: String, width: String, height: String, rot: String) -> String {
+// URL-facing params arrive as raw strings and must never panic the
+// handler thread (flowlang cast_params aborts on a malformed Integer,
+// and the settings preview retries forever): parse leniently and
+// soft-fail to the no-signal placeholder.
+let width = width.trim().parse::<i64>().unwrap_or(0);
+let height = height.trim().parse::<i64>().unwrap_or(0);
+let rot = rot.trim().parse::<i64>().unwrap_or(0);
+if width <= 0 || height <= 0 {
+  return DataStore::new().root.join("camera").join("_ASSETS").join("no_signal.jpg").into_os_string().into_string().unwrap();
+}
 let t1 = temp_dir().join(unique_session_id()+".jpg");
 let temp = t1.to_owned().into_os_string().into_string().unwrap();
 //println!("temp file {:?}", temp);

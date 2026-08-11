@@ -91,6 +91,7 @@ me.build = function(){
 };
 
 function buildThumbs(){
+  if (!me.dvrtime || isNaN(me.dvrtime)) { return; }
   var start = me.dvrstart = me.dvrtime;
   var len = parseInt($(ME).find('.durationslider').val()) * 1000;
   $(ME).find('.durationslidervalue').val(parseLen(len/1000));
@@ -130,6 +131,7 @@ $(ME).find('.dvrplaybutton').click(function(){
 });
 
 me.loadSnap = function(time, cb){
+  if (!time || isNaN(time)) { if (cb) cb(); return; }
   var url = me.prefix+'camera/keyframe/snap-'+time+'.jpg?timestamp='+time;
   $(ME).find('.snap-wrap-img').prop('src', url);
   $(ME).find('.snap-wrap').css('display', 'block');
@@ -192,6 +194,9 @@ function updateSlide(){
 }
 
 function buildTimePicker(){
+  // an empty archive has no first/last - a picker built from them would
+  // emit timestamp=NaN requests forever
+  if (!me.status.first || !me.status.last) { return; }
   var start = new Date(me.status.first);
   var stop = new Date(me.status.last);
 

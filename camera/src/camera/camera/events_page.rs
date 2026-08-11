@@ -19,8 +19,8 @@ pub fn execute(o: DataObject) -> DataObject {
         }
     }
     let ax = panic::catch_unwind(panic::AssertUnwindSafe(|| {
-        let arg_0: i64 = o.get_int("since");
-        let arg_1: i64 = o.get_int("limit");
+        let arg_0: String = o.get_string("since");
+        let arg_1: String = o.get_string("limit");
         events_page(arg_0, arg_1)
     }));
     match ax {
@@ -53,7 +53,10 @@ pub fn execute(o: DataObject) -> DataObject {
     }
 }
 
-pub fn events_page(since: i64, limit: i64) -> DataArray {
+pub fn events_page(since: String, limit: String) -> DataArray {
+// lenient: garbage since/limit means 0 (no floor / no cap), never a panic
+let since = since.trim().parse::<i64>().unwrap_or(0);
+let limit = limit.trim().parse::<i64>().unwrap_or(0);
 let settings = settings(Data::DNull);
 let root = settings.get_string("storage");
 let root = Path::new(&root).join("events");

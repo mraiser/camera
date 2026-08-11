@@ -39,7 +39,7 @@ me.ready = function(){
 
 function buildDevices() {
   var cam = $(ME).find('#select-camera').val();
-  var dev = me.available[cam];
+  var dev = me.available[cam] || {};
   var val = me.settings.device;
   var newhtml = "";
   for (var i in dev) {
@@ -53,7 +53,7 @@ function buildDevices() {
 function buildFormat() {
   var cam = $(ME).find('#select-camera').val();
   var dev = $(ME).find('#select-device').val();
-  var format = me.available[cam][dev];
+  var format = (me.available[cam] || {})[dev] || {};
   var val = me.settings.format;
   var newhtml = "";
   for (var i in format) {
@@ -68,7 +68,7 @@ function buildResolution() {
   var cam = $(ME).find('#select-camera').val();
   var dev = $(ME).find('#select-device').val();
   var format = $(ME).find('#select-format').val();
-  var res = me.available[cam][dev][format];
+  var res = ((me.available[cam] || {})[dev] || {})[format] || [];
   var z = me.settings.resolution;
   var newhtml = "";
   for (var i in res) {
@@ -85,6 +85,8 @@ function snapShot() {
   var format = $(ME).find('#select-format').val();
   var res = $(ME).find('#select-resolution').val();
   var rot = $(ME).find('#select-rotation').val();
+  // never emit a malformed geometry - re-check once the selects populate
+  if (!dev || !res || String(res).indexOf('x') < 1) { setTimeout(snapShot, 1000); return; }
   res = res.split("x");
   $(ME).find('#snapshot').prop("src", me.prefix+"camera/snapshot/x"+(q++)+".jpg?device="+encodeURIComponent(dev)+"&format="+encodeURIComponent(format)+"&width="+res[0]+"&height="+res[1]+"&rot="+rot);
 }
