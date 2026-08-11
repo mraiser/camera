@@ -72,7 +72,12 @@ fn write_video(stream:DataBytes, tpid:String){
             });
             
             let mp4path = to_path(&storage, millis, "archive", "mp4").into_os_string().into_string().unwrap();
-            let jpgpath = to_path(&storage, millis, "keyframes", "jpg").into_os_string().into_string().unwrap(); // FIXME - No guarantee this exists. Expensive to do twice in a row like that
+            // The jpg does not exist yet: it is the destination that the
+            // on_capture handler of the keyframe event writes to; to_path
+            // pre-creates the directory so ffmpeg can write there. Event
+            // consumers must tolerate a jpg that is still seconds from
+            // existing (the UI retries on img error).
+            let jpgpath = to_path(&storage, millis, "keyframes", "jpg").into_os_string().into_string().unwrap();
             let _x = rename(&vname1, &mp4path);
             meta.put_string("last_mp4", &mp4path);
             meta.put_int("last_keyframe", millis);

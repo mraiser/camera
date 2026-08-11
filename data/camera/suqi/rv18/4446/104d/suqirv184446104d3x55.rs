@@ -49,6 +49,9 @@ if is_libcamera(&device) {
   let _x = fs::remove_file(t2);
 }
 else {
+  // device comes straight off the URL; V4L2 capture devices live under
+  // /dev - refuse anything else (ffmpeg -i would happily read any path)
+  if !device.starts_with("/dev/") { return temp; }
   let mut t = t.to_string();
   if rot == 90 || rot == 270 { // FIXME - If camera supports portrait scaling degrades the image unnecessarily
     let q = (width*width)/height;
