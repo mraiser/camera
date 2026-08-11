@@ -121,10 +121,12 @@ fn open_camera(tpid:String) {
     //let inline_snaps = settings.has("inline_snaps") && Data::as_string(settings.get_property("inline_snaps")) == "true".to_string();
 
     let mut o = Vec::new();
-    let syscmd;
+    let syscmd:String;
 
-    if device == "libcamera-apps".to_string() {
-      syscmd = "libcamera-vid";
+    if is_libcamera(&device) {
+      syscmd = camera_tool("vid").unwrap_or("libcamera-vid".to_string());
+      o.push("--camera".to_owned());
+      o.push(camera_index(&device).to_string());
 
       let mut width = width;
       let mut height = height;
@@ -153,7 +155,7 @@ fn open_camera(tpid:String) {
       o.push("-".to_owned());  
     }
     else {
-      syscmd = "ffmpeg";
+      syscmd = "ffmpeg".to_string();
 
       o.push("-f".to_string());
       o.push("v4l2".to_string());
@@ -203,7 +205,7 @@ fn open_camera(tpid:String) {
 //    }
 //    println!("AND THE VIDEO TIME IS {}", time());
     
-    let cmd = Command::new(syscmd)
+    let cmd = Command::new(&syscmd)
       .args(o)
       .stderr(Stdio::null())
       .stdout(Stdio::piped())

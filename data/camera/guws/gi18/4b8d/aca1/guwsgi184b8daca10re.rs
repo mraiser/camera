@@ -40,7 +40,7 @@
     o.push_string("-safe");
     o.push_string("0");
     
-    if rot != 0 && settings.get_string("device") == "libcamera-apps".to_string() {
+    if rot != 0 && is_libcamera(&settings.get_string("device")) {
       o.push_string("-display_rotation");
       o.push_string(&(360-rot).to_string());
     }
@@ -53,7 +53,7 @@
       o.push_string("-c:v");
       o.push_string("h264");
     }
-    else if rot != 0 && settings.get_string("device") != "libcamera-apps".to_string() {
+    else if rot != 0 && !is_libcamera(&settings.get_string("device")) {
       let t = match rot {
         90 => "transpose=1",
         180 => "transpose=2,transpose=2",

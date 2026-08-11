@@ -27,7 +27,7 @@ let jpgpath = storage.to_owned() + &jpg;
 
     let mut t = t.to_string();
 
-    if device != "libcamera-apps".to_string(){
+    if !is_libcamera(&device) {
       if rot == 90 || rot == 270 {
         let q = (width*width)/height;
         t = t + ",scale=" + &width.to_string()+":"+&q.to_string()+",crop="+&width.to_string()+":"+&height.to_string();

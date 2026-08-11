@@ -15,6 +15,7 @@ use std::io::Write;
 use ndata::dataarray::DataArray;
 use std::fs;
 use flowlang::flowlang::system::system_call::system_call;
+use crate::camera::camera::available::is_libcamera;
 
 pub fn execute(o: DataObject) -> DataObject {
     use std::panic;
@@ -105,7 +106,7 @@ pub fn play(nn_path: String) -> String {
     o.push_string("-safe");
     o.push_string("0");
     
-    if rot != 0 && settings.get_string("device") == "libcamera-apps".to_string() {
+    if rot != 0 && is_libcamera(&settings.get_string("device")) {
       o.push_string("-display_rotation");
       o.push_string(&(360-rot).to_string());
     }
@@ -118,7 +119,7 @@ pub fn play(nn_path: String) -> String {
       o.push_string("-c:v");
       o.push_string("h264");
     }
-    else if rot != 0 && settings.get_string("device") != "libcamera-apps".to_string() {
+    else if rot != 0 && !is_libcamera(&settings.get_string("device")) {
       let t = match rot {
         90 => "transpose=1",
         180 => "transpose=2,transpose=2",

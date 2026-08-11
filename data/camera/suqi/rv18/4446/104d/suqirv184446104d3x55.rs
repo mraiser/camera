@@ -10,7 +10,7 @@ let t = match rot {
   _ => "transpose=none",
 };
 
-if device == "libcamera-apps".to_string(){
+if is_libcamera(&device) {
   let mut width = width;
   let mut height = height;
   if rot == 90 || rot == 270 {
@@ -22,7 +22,9 @@ if device == "libcamera-apps".to_string(){
   let t2 = temp_dir().join(unique_session_id()+"_x.jpg");
   let temp2 = t2.to_owned().into_os_string().into_string().unwrap();
   let mut o = DataArray::new();
-  o.push_string("libcamera-still");
+  o.push_string(&camera_tool("still").unwrap_or("libcamera-still".to_string()));
+  o.push_string("--camera");
+  o.push_string(&camera_index(&device).to_string());
   o.push_string("-n");
   o.push_string("--width");
   o.push_string(&width.to_string());
