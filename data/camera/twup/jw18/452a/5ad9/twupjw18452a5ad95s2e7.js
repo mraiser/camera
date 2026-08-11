@@ -149,8 +149,11 @@ function next(){
     var format = me.status.format;
     var res = me.status.resolution;
     var rot = me.status.rotation;
-    if (res) res = res.split("x");
-    else res = me.status.resolution = ['1920','1080'];
+    // the fallback assignment below stores the ARRAY back into
+    // me.status.resolution, so the next poll reads an array - only
+    // strings split (same guard adjustSizes always had)
+    if (typeof res == "string") res = res.split("x");
+    else if (!res) res = me.status.resolution = ['1920','1080'];
     $(ME).find('.live-img').prop("src", me.prefix+"camera/snapshot/x"+(q++)+".jpg?device="+encodeURIComponent(dev)+"&format="+encodeURIComponent(format)+"&width="+res[0]+"&height="+res[1]+"&rot="+rot);
   }
 }

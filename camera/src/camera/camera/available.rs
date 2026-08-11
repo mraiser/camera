@@ -108,7 +108,10 @@ if out.objects().len() == 0 {
   o.push_string("v4l2-ctl");
   o.push_string("--list-devices");
   let x = system_call(o);
-  if !x.has("out") { return x; }
+  // no usable v4l2-ctl output means no cameras - never hand the raw
+  // system_call failure object to the UI as if it were the camera tree
+  // (it renders as camera "err", resolution "Uxundefined")
+  if !x.has("out") { return out; }
 
   let mut current = DataObject::new();
   let s = x.get_string("out");

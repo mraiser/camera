@@ -13,13 +13,16 @@ me.ready = function(){
     json(me.prefix+'camera/available', null, function(result){
       if (result.status != 'ok') { alert(result.msg); }
       else {
-        me.available = result.data;
+        me.available = result.data || {};
         var val = me.settings.camera;
         var newhtml = "";
-        for (var i in result.data) {
+        var count = 0;
+        for (var i in me.available) {
+          count++;
           var s = i == val ? ' selected' : '';
           newhtml += "<option"+s+">"+i+"</option>";
         }
+        if (!count) newhtml = "<option disabled selected>No cameras detected</option>";
         $(ME).find('#select-camera').html(newhtml).on('change', buildDevices);
         buildDevices();
         snapShot();
@@ -85,8 +88,10 @@ function snapShot() {
   var format = $(ME).find('#select-format').val();
   var res = $(ME).find('#select-resolution').val();
   var rot = $(ME).find('#select-rotation').val();
-  // never emit a malformed geometry - re-check once the selects populate
-  if (!dev || !res || String(res).indexOf('x') < 1) { setTimeout(snapShot, 1000); return; }
-  res = res.split("x");
+  // never emit malformed geometry - both parts must be positive numbers
+  // ("Uxundefined" from a garbage tree passes an indexOf check)
+  if (!dev || !res) { setTimeout(snapShot, 1000); return; }
+  res = String(res).split("x");
+  if (!(+res[0] > 0) || !(+res[1] > 0)) { setTimeout(snapShot, 1000); return; }
   $(ME).find('#snapshot').prop("src", me.prefix+"camera/snapshot/x"+(q++)+".jpg?device="+encodeURIComponent(dev)+"&format="+encodeURIComponent(format)+"&width="+res[0]+"&height="+res[1]+"&rot="+rot);
 }
