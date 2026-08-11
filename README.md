@@ -1,92 +1,27 @@
 # Newbound Camera
 
-Camera is an app in the [Newbound](https://github.com/mraiser/newbound) appserver ecosystem. To install, add this project to the "data" directory of a Newbound server.
+Camera is an app in the [Newbound](https://github.com/mraiser/newbound) appserver ecosystem: live view, DVR with
+time-travel playback and clip download, motion detection with event browsing, and peer-to-peer remote viewing —
+all served from your own hardware. The live view plays a fragmented-MP4 stream in any modern browser (MSE),
+falling back to still-image polling automatically.
 
 ## Installation
-These instructions are for Raspberry Pi OS and other flavors of Debian Linux. The Newbound Camera app should work fine on any operating system that supports the Rust compiler, FFMPEG and V4L2.
+
+These instructions are for Raspberry Pi OS and other flavors of Debian Linux (including Ubuntu). The app works on
+any OS with the Rust compiler, FFmpeg, and either a CSI camera stack (rpicam/libcamera) or V4L2 devices.
 
 ### Dependencies
-    
-    sudo apt-get install git libssl-dev pkg-config gcc -y
+
+    sudo apt-get update
+    sudo apt-get install -y git build-essential libssl-dev pkg-config curl ffmpeg v4l-utils
+
+The distribution FFmpeg is all that is needed — no source build. On Raspberry Pi OS the CSI camera tools ship
+preinstalled (`rpicam-vid`/`rpicam-still` on Bookworm and later; the older `libcamera-*` names are also detected).
+USB webcams need only `v4l-utils`.
 
 ### Install Rust
-    
+
     curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
-
-### Install FFMPEG    
-
-    sudo apt-get update -qq && sudo apt-get -y install \
-      autoconf \
-      automake \
-      build-essential \
-      cmake \
-      git-core \
-      libass-dev \
-      libfreetype6-dev \
-      libgnutls28-dev \
-      libmp3lame-dev \
-      libsdl2-dev \
-      libtool \
-      libva-dev \
-      libvdpau-dev \
-      libvorbis-dev \
-      libxcb1-dev \
-      libxcb-shm0-dev \
-      libxcb-xfixes0-dev \
-      meson \
-      ninja-build \
-      pkg-config \
-      texinfo \
-      wget \
-      yasm \
-      zlib1g-dev \
-      libunistring-dev \
-      libaom-dev \
-      libdav1d-dev \
-      nasm \
-      libx264-dev \
-      libx265-dev \
-      libnuma-dev \
-      libvpx-dev \
-      libfdk-aac-dev \
-      libopus-dev \
-      libdav1d-dev 
-      
-    mkdir -p ~/ffmpeg_sources ~/bin
-    cd ~/ffmpeg_sources && \
-    wget -O ffmpeg-snapshot.tar.bz2 https://ffmpeg.org/releases/ffmpeg-snapshot.tar.bz2 && \
-    tar xjvf ffmpeg-snapshot.tar.bz2 && \
-    cd ffmpeg && \
-    PATH="$HOME/bin:$PATH" PKG_CONFIG_PATH="$HOME/ffmpeg_build/lib/pkgconfig" ./configure \
-      --prefix="$HOME/ffmpeg_build" \
-      --pkg-config-flags="--static" \
-      --extra-cflags="-I$HOME/ffmpeg_build/include" \
-      --extra-ldflags="-L$HOME/ffmpeg_build/lib" \
-      --extra-libs="-lpthread -lm" \
-      --ld="g++" \
-      --bindir="$HOME/bin" \
-      --enable-gpl \
-      --enable-gnutls \
-      --enable-libaom \
-      --enable-libass \
-      --enable-libfdk-aac \
-      --enable-libfreetype \
-      --enable-libmp3lame \
-      --enable-libopus \
-      --enable-libdav1d \
-      --enable-libvorbis \
-      --enable-libvpx \
-      --enable-libx264 \
-      --enable-libx265 \
-      --enable-nonfree && \
-    PATH="$HOME/bin:$PATH" make && \
-    make install && \
-    hash -r
-
-    cd ~
-    sudo mv bin/ff* /usr/bin/
-    rm -rf ffmpeg_build
-    rm -rf ffmpeg_sources
 
 ### Install Newbound
 
@@ -94,51 +29,69 @@ These instructions are for Raspberry Pi OS and other flavors of Debian Linux. Th
     cd Newbound
     cargo build --release --features=serde_support
 
-### Install Newbound Camera
+### Install the Camera app
 
-    mkdir github
-    cd github
-    git clone https://github.com/mraiser/camera.git camera
-    cd ../data
-    ln -s ../github/camera/data/camera camera
-    cd ../runtime
-    ln -s ../github/camera/runtime/camera camera
-    cd ../
+**From a running Newbound** (easiest): use the dev library's GitHub importer with this repository's URL
+(`https://github.com/mraiser/camera.git`). It clones the repo whole into `repositories/camera`, links the app into
+place, and builds it; restart Newbound once when it says so.
 
-### Startup Newbound
+**Manually** (from the `Newbound` directory):
 
-    # Launch Newbound as an app
-    # This will automatically open a logged-in browser window
-    # Use feature "headless" to suppress browser
-    # Use feature "webview" to launch as standalone app instead of browser 
-    cargo run --release --features=serde_support
+    git clone https://github.com/mraiser/camera.git repositories/camera
+    ln -s "$PWD/repositories/camera/data/camera" data/camera
+    ln -s "$PWD/repositories/camera/runtime/camera" runtime/camera
+    ln -s "$PWD/repositories/camera/camera" camera
+    ./target/release/newbound rebuild
+    cargo build --release --features=serde_support
+    (cd camera && cargo build --release --features=serde_support)
 
-OR
+The camera library is a hot-reload crate: after the first build, changes to its Rust recompile and reload into a
+running server with no restart.
 
-    # Install and launch Newbound as a service
+### Start Newbound
+
+    # Launch directly — opens a logged-in browser window on first run
+    ./target/release/newbound
+
+Or install it as a service:
+
     printf "[Unit]
     Description=Newbound
+    After=network.target
 
     [Service]
     User=$USER
-    Group=$USER
     WorkingDirectory=/home/$USER/Newbound
-    ExecStart=bash -c '/home/$USER/.cargo/bin/cargo run --release --features=serde_support &'
-    Type=forking
-    RemainAfterExit=yes
+    ExecStart=/home/$USER/Newbound/target/release/newbound
+    Restart=on-failure
 
     [Install]
     WantedBy=multi-user.target
     " | sudo tee /etc/systemd/system/newbound.service
-    
+
     sudo systemctl daemon-reload
-    sudo systemctl enable newbound
-    sudo systemctl start newbound
+    sudo systemctl enable --now newbound
 
-### Activate Camera app
-When Newbound launches for the first time, it will launch the "Applications" app in a web browser with  inactive apps hidden. Click the toggle switch in "Applications" to show the Camera app, select it, then click the "ACTIVATE" button.
+### NixOS
 
-# Useful config files 
+Newbound's checkout carries a `default.nix` dev shell that includes the build toolchain and the camera app's
+runtime dependencies (FFmpeg, v4l-utils). Build and run from inside it:
+
+    cd Newbound
+    nix-shell
+    cargo build --release --features=serde_support
+    ./target/release/newbound
+
+For Raspberry Pi CSI cameras add `rpicam-apps` to the shell's package list. (A flake/NixOS module is not provided
+yet.)
+
+### Activate the Camera app
+
+When Newbound launches for the first time it opens the "Applications" app with inactive apps hidden. Click the
+toggle switch to show the Camera app, select it, then click **ACTIVATE**.
+
+## Useful config files
+
 (after first run)
 
     # Show HTTP port
@@ -147,8 +100,9 @@ When Newbound launches for the first time, it will launch the "Applications" app
     # Show admin user password
     cat users/admin.properties
 
-# Sample Camera config file 
-(created automatically when saving preferences in app)
+## Sample Camera config file
+
+(created automatically when saving preferences in the app)
 
     # Newbound/runtime/camera/botd.properties
     dvr=true
@@ -159,9 +113,12 @@ When Newbound launches for the first time, it will launch the "Applications" app
     motion_noise_cancel=4
     video_encoder=copy
     days=2.0
-    camera=Raspberry Pi - imx477 [4056x3040] (/base/soc/i2c0mux/i2c@1/imx477@1a)
-    device=libcamera-apps
+    camera=Raspberry Pi - imx477 [4056x3040 10-bit RGGB] (/base/soc/i2c0mux/i2c@1/imx477@1a)
+    device=libcamera:0
     resolution=1920x1080
     motion_sensitivity=8
     storage=/mnt/usb/storage
 
+`device` values: `libcamera:<index>` selects a CSI camera by index (configs saved by older versions with
+`device=libcamera-apps` still work and mean index 0); a `/dev/video*` path selects a V4L2 device. Point `storage`
+at a disk with room for the DVR archive — retention is `days` (default 2).

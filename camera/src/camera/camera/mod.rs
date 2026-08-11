@@ -1,5 +1,6 @@
 // This file is auto-generated and managed by the flowlang build script.
 use flowlang::rustcmd::Transform;
+pub mod events_page;
 pub mod live;
 pub mod stop_recording;
 pub mod status;
@@ -31,4 +32,5 @@ pub fn cmdinit(cmds: &mut Vec<(String, Transform, String)>) {
     cmds.push(("norphu18452a74484p2ed".to_string(), status::execute, "".to_string()));
     cmds.push(("lkiphi1844d32b0f5z24".to_string(), stop_recording::execute, "".to_string()));
     cmds.push(("sgmxup1869485c680qaa".to_string(), live::execute, "".to_string()));
+    cmds.push(("xuxzml19ff1f4faeau1".to_string(), events_page::execute, "".to_string()));
 }

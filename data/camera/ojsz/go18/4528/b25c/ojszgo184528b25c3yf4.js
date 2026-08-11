@@ -61,7 +61,8 @@ me.build = function(){
     $(ME).find('.live-img-ctrls').css('display', 'none');
     var div = $(ME).find('.event-images');
     div.empty();
-    json(me.prefix+'camera/events', null, function(result){
+    var render = function(result){
+      if (!result.data) return;
       result.data.sort(function(a,b){
         return a.time - b.time;
       });
@@ -75,6 +76,12 @@ me.build = function(){
         div.append(el);
       }
       adjustSizes();
+    };
+    // newest 500 via events_page; an older host (over the peer proxy)
+    // lacks it, so fall back to the unpaginated events command
+    json(me.prefix+'camera/events_page', "since=0&limit=500", function(result){
+      if (result.status == 'ok' && result.data) render(result);
+      else json(me.prefix+'camera/events', null, render);
     });
   });
   
