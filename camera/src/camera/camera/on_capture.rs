@@ -2,7 +2,8 @@ use ndata::dataobject::DataObject;
 use crate::camera::camera::settings::settings;
 use ndata::data::Data;
 use image::imageops::FilterType;
-use std::sync::Once;
+use std::sync::OnceLock;
+use std::sync::Mutex;
 use simple_moving_average::SingleSumSMA;
 use flowlang::datastore::DataStore;
 use ndata::dataarray::DataArray;
@@ -133,7 +134,6 @@ let jpgpath = storage.to_owned() + &jpg;
 //}
 
 if settings.has("motion") && settings.get_boolean("motion"){
-  START.call_once(|| { init(); });
   let img = image::open(&jpgpath);
   if img.is_ok() {
     let system = DataStore::globals().get_object("system");
@@ -150,32 +150,26 @@ if settings.has("motion") && settings.get_boolean("motion"){
     let mut score:u32 = 0;
     let mut adj:u32 = 0;
     let mut noise:u32 = 0;
-    
+
+    // delta/delta2 were per-frame scratch in the old static arrays; only
+    // the previous frame (last) and the noise model (map) persist.
+    let mut guard = motion_state().lock().unwrap_or_else(|e| e.into_inner());
+    let state = &mut *guard;
+
     for (x, y, pixel) in img.pixels() {
-      let x = x as usize;
-      let y = y as usize;
+      let idx = (x as usize) * (MOTION_SIZE as usize) + (y as usize);
       let rgb = pixel.to_rgb();
-
-      let last;
-      let map;
-      let delta;
-      let delta2;
-
-      unsafe { 
-        last = &mut LAST[x][y]; 
-        map = &mut MAP[x][y]; 
-        delta = &mut DELTA[x][y]; 
-        delta2 = &mut DELTA2[x][y]; 
-      }
+      let last = &mut state.last[idx];
+      let map = &mut state.map[idx];
 
       let mut i = 0;
       while i < 3 {
-        delta[i] = (last[i] as i16 - rgb[i] as i16).abs() as u8;
-        delta2[i] = cmp::max(delta[i] as i16 - (factor * map[i].get_average() as f32) as i16, 0) as u8;
-        map[i].add_sample(delta[i] as u32);
+        let delta = (last[i] as i16 - rgb[i] as i16).abs() as u8;
+        let delta2 = cmp::max(delta as i16 - (factor * map[i].get_average() as f32) as i16, 0) as u8;
+        map[i].add_sample(delta as u32);
 
-        score += delta[i] as u32;
-        adj += delta2[i] as u32;
+        score += delta as u32;
+        adj += delta2 as u32;
         noise += map[i].get_average();
 
         last[i] = rgb[i];
@@ -230,48 +224,20 @@ if settings.has("motion") && settings.get_boolean("motion"){
 
 const MOTION_SIZE:u32 = 64;
 const MOTION_COUNT:u32 = MOTION_SIZE * MOTION_SIZE;
-static START: Once = Once::new();
-static mut LAST:Vec<Vec<Vec<u8>>> = Vec::new();
-static mut MAP:Vec<Vec<Vec<SingleSumSMA::<u32, u32, 10>>>> = Vec::new();
-static mut DELTA:Vec<Vec<Vec<u8>>> = Vec::new();
-static mut DELTA2:Vec<Vec<Vec<u8>>> = Vec::new();
+struct MotionState {
+  last: Vec<[u8; 3]>,
+  map: Vec<[SingleSumSMA<u32, u32, 10>; 3]>,
+}
 
-fn init(){
-  let n = MOTION_SIZE;
-  let mut x = 0;
-  while x<n {
-    let mut va = Vec::new();
-    let mut vb = Vec::new();
-    let mut vc = Vec::new();
-    let mut vd = Vec::new();
-    let mut y = 0;
-    while y<n{
-      let mut v2a = Vec::new();
-      let mut v2b = Vec::new();
-      let mut v2c = Vec::new();
-      let mut v2d = Vec::new();
-      let mut i = 0;
-      while i<3{
-        v2a.push(0);
-        v2b.push(SingleSumSMA::new());
-        v2c.push(0);
-        v2d.push(0);
-        i += 1;
-      }
-      va.push(v2a);
-      vb.push(v2b);
-      vc.push(v2c);
-      vd.push(v2d);
-      y += 1;
-    }
-    unsafe { 
-      LAST.push(va); 
-      MAP.push(vb); 
-      DELTA.push(vc); 
-      DELTA2.push(vd); 
-    }
-    x += 1;
-  }
+// Serialized, safe motion state. The old form - static mut Vecs mutated
+// through unsafe references - was a data race between overlapping
+// keyframe events and a hard error under Rust edition 2024.
+fn motion_state() -> &'static Mutex<MotionState> {
+  static MOTION: OnceLock<Mutex<MotionState>> = OnceLock::new();
+  MOTION.get_or_init(|| Mutex::new(MotionState {
+    last: vec![[0u8; 3]; MOTION_COUNT as usize],
+    map: (0..MOTION_COUNT).map(|_| [SingleSumSMA::new(), SingleSumSMA::new(), SingleSumSMA::new()]).collect(),
+  }))
 }
 
 pub fn to_path(storage:&str, time:i64, folder:&str, suffix:&str) -> PathBuf {
