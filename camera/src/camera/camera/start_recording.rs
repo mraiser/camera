@@ -1,4 +1,4 @@
-use ndata::dataobject::*;
+use ndata::dataobject::DataObject;
 use std::thread;
 use flowlang::datastore::DataStore;
 use std::process::Command;
@@ -18,12 +18,41 @@ use ndata::databytes::DataBytes;
 use core::time::Duration;
 use crate::camera::camera::on_capture::to_path;
 use flowlang::flowlang::system::time::time;
+use std::sync::Once;
 
-pub fn execute(_o: DataObject) -> DataObject {
-let ax = start_recording();
-let mut o = DataObject::new();
-o.put_string("a", &ax);
-o
+pub fn execute(_: DataObject) -> DataObject {
+    use std::panic;
+    let ax = panic::catch_unwind(panic::AssertUnwindSafe(|| {
+        start_recording()
+    }));
+    match ax {
+        Ok(ax) => {
+            let mut result_obj = DataObject::new();
+    result_obj.put_string("a", &ax);
+            result_obj
+        }
+        Err(err) => {
+            let mut err_obj = DataObject::new();
+            err_obj.put_string("status", "err");
+
+            let msg = if let Some(s) = err.downcast_ref::<&str>() {
+                s.to_string()
+            } else if let Some(s) = err.downcast_ref::<String>() {
+                s.clone()
+            } else {
+                "Unknown panic occurred".to_string()
+            };
+
+            err_obj.put_string("msg", &msg);
+            // Wrapped in the same `a` envelope a successful return uses.
+            // Unwrapped, callers that unpack the envelope (newbound's
+            // format_result, for one) report an opaque 500 — "Not an object:
+            // DString(\"err\")" — instead of this message.
+            let mut result_obj = DataObject::new();
+            result_obj.put_object("a", err_obj);
+            result_obj
+        }
+    }
 }
 
 pub fn start_recording() -> String {
@@ -81,6 +110,7 @@ fn write_video(stream:DataBytes, tpid:String){
       let mut vname2 = dest.join((vid+1).to_string()+".mp4");
       let beat = Duration::from_millis(10);
       //let start = time();
+      let firsttime = Once::new();
       while system.get_boolean("running") && (&meta).get_boolean(&tpid) {
         let vec = stream.read(409600);
         if vec.len() > 0 {
@@ -89,9 +119,16 @@ fn write_video(stream:DataBytes, tpid:String){
             if x1.is_err() {  break; }
           }
           if vname1.exists() && vname2.exists() {
-            let snow = std::fs::metadata(&vname1).unwrap().modified().unwrap();
+            let snow = std::fs::metadata(&vname1).unwrap().created().unwrap();
             let millis:i64 = snow.duration_since(UNIX_EPOCH).expect("error").as_millis().try_into().unwrap();
             //let millis:i64 = start + (vid * 2000);
+            
+            firsttime.call_once(|| {
+              let rounded = millis - (millis % 2000);
+              let offset = rounded - meta.get_int("time_1");
+              meta.put_int("offset", offset);
+            });
+            
             let mp4path = to_path(&storage, millis, "archive", "mp4").into_os_string().into_string().unwrap();
             let jpgpath = to_path(&storage, millis, "keyframes", "jpg").into_os_string().into_string().unwrap(); // FIXME - No guarantee this exists. Expensive to do twice in a row like that
             let _x = rename(&vname1, &mp4path);
@@ -234,11 +271,17 @@ fn open_camera(tpid:String) {
       let mut cmd = cmd.unwrap();
       let reader = cmd.stdout.as_mut().unwrap();
       let mut buf = [0; 409600];
+      let firsttime = Once::new();
       while system.get_boolean("running") && meta.get_boolean(&tpid) {
         let x = reader.read(&mut buf);
         if x.is_err() {  break; }
         let x = x.unwrap();
         if x == 0 { break; }
+        
+        firsttime.call_once(|| {
+          meta.put_int("time_1", time());
+        });
+        
         for (_id, stream) in streams.objects() {
           stream.bytes().write(&buf[0..x]);
         }
@@ -255,4 +298,3 @@ fn open_camera(tpid:String) {
     println!("Camera stream end");
   });
 }
-

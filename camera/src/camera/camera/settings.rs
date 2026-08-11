@@ -1,4 +1,4 @@
-use ndata::dataobject::*;
+use ndata::dataobject::DataObject;
 use ndata::data::Data;
 use flowlang::datastore::DataStore;
 use flowlang::flowlang::file::write_properties::write_properties;
@@ -8,14 +8,52 @@ use std::thread;
 use core::time::Duration;
 
 pub fn execute(o: DataObject) -> DataObject {
-let a0 = o.get_property("settings");
-let ax = settings(a0);
-let mut o = DataObject::new();
-o.put_object("a", ax);
-o
+    use std::panic;
+    for p in ["settings"] {
+        if !o.has(p) {
+            let mut e = DataObject::new();
+            e.put_string("status", "err");
+            e.put_string("msg", &format!("missing required parameter: {}", p));
+            let mut result_obj = DataObject::new();
+            result_obj.put_object("a", e);
+            return result_obj;
+        }
+    }
+    let ax = panic::catch_unwind(panic::AssertUnwindSafe(|| {
+        let arg_0: Data = o.get_property("settings");
+        settings(arg_0)
+    }));
+    match ax {
+        Ok(ax) => {
+            let mut result_obj = DataObject::new();
+    result_obj.put_object("a", ax);
+            result_obj
+        }
+        Err(err) => {
+            let mut err_obj = DataObject::new();
+            err_obj.put_string("status", "err");
+
+            let msg = if let Some(s) = err.downcast_ref::<&str>() {
+                s.to_string()
+            } else if let Some(s) = err.downcast_ref::<String>() {
+                s.clone()
+            } else {
+                "Unknown panic occurred".to_string()
+            };
+
+            err_obj.put_string("msg", &msg);
+            // Wrapped in the same `a` envelope a successful return uses.
+            // Unwrapped, callers that unpack the envelope (newbound's
+            // format_result, for one) report an opaque 500 — "Not an object:
+            // DString(\"err\")" — instead of this message.
+            let mut result_obj = DataObject::new();
+            result_obj.put_object("a", err_obj);
+            result_obj
+        }
+    }
 }
 
-pub fn settings(settings:Data) -> DataObject {
+pub fn settings(settings: Data) -> DataObject {
 let mut x = DataStore::globals().get_object("system").get_object("apps").get_object("camera").get_object("runtime");
 
 if x.has("dvr") && Data::as_string(x.get_property("dvr")) == "true".to_string(){ x.put_boolean("dvr", true); }
@@ -70,4 +108,3 @@ if s.starts_with("{") {
 
 x
 }
-

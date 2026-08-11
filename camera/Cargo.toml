@@ -1,0 +1,26 @@
+[package]
+name = "camera"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["dylib"]
+
+[dependencies]
+simple_moving_average = "0.1.2"
+chrono = "0.4.22"
+image = "0.24.4"
+flowlang = { version="0.3.31" }
+ndata = "0.3.17"
+serde = { version = "1.0", features = ["derive"], optional = true }
+serde_json = { version = "1.0", optional = true }
+
+[features]
+serde_support = ["serde", "serde_json", "flowlang/serde_support", "ndata/serde_support"]
+python_runtime = ["flowlang/python_runtime"]
+javascript_runtime = ["flowlang/javascript_runtime"]
+reload = []
+default = []
+
+# Self-contained: not a member of the host checkout's cargo workspace
+[workspace]

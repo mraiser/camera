@@ -1,3 +1,7 @@
+# Build output
+target/
+camera/Cargo.lock
+
+# Local runtime values never ride the repo
 /runtime/camera/botd.properties
 /runtime/camera/storage
-

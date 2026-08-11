@@ -1,4 +1,4 @@
-use ndata::dataobject::*;
+use ndata::dataobject::DataObject;
 use ndata::data::Data;
 use flowlang::datastore::DataStore;
 use crate::camera::camera::settings::settings;
@@ -8,11 +8,39 @@ use std::fs;
 use chrono::Utc;
 use chrono::TimeZone;
 
-pub fn execute(_o: DataObject) -> DataObject {
-let ax = status();
-let mut o = DataObject::new();
-o.put_object("a", ax);
-o
+pub fn execute(_: DataObject) -> DataObject {
+    use std::panic;
+    let ax = panic::catch_unwind(panic::AssertUnwindSafe(|| {
+        status()
+    }));
+    match ax {
+        Ok(ax) => {
+            let mut result_obj = DataObject::new();
+    result_obj.put_object("a", ax);
+            result_obj
+        }
+        Err(err) => {
+            let mut err_obj = DataObject::new();
+            err_obj.put_string("status", "err");
+
+            let msg = if let Some(s) = err.downcast_ref::<&str>() {
+                s.to_string()
+            } else if let Some(s) = err.downcast_ref::<String>() {
+                s.clone()
+            } else {
+                "Unknown panic occurred".to_string()
+            };
+
+            err_obj.put_string("msg", &msg);
+            // Wrapped in the same `a` envelope a successful return uses.
+            // Unwrapped, callers that unpack the envelope (newbound's
+            // format_result, for one) report an opaque 500 — "Not an object:
+            // DString(\"err\")" — instead of this message.
+            let mut result_obj = DataObject::new();
+            result_obj.put_object("a", err_obj);
+            result_obj
+        }
+    }
 }
 
 pub fn status() -> DataObject {
@@ -22,10 +50,13 @@ let settings = settings(Data::DNull);
 let storage = settings.get_string("storage");
 
 let recording = meta.has("last_keyframe") && time() - meta.get_int("last_keyframe") < 4000;
+let mut offset = 0;
+if meta.has("offset") { offset = meta.get_int("offset"); }
 
 let mut o = settings.deep_copy();
 o.put_object("app", meta.get_object("app"));
 o.put_boolean("recording", recording);
+o.put_int("offset", offset);
 
 let keyframes = Path::new(&storage).join("keyframes");
 if keyframes.exists(){
@@ -197,4 +228,3 @@ if keyframes.exists(){
 
 o
 }
-
