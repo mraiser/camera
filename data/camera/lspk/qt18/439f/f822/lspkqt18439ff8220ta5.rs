@@ -53,7 +53,9 @@ fn write_video(stream:DataBytes, tpid:String){
       let beat = Duration::from_millis(10);
       //let start = time();
       let firsttime = Once::new();
-      while system.get_boolean("running") && (&meta).get_boolean(&tpid) {
+      // has-guard: open_camera's exit path removes the pid key, and this
+      // loop must not race a get_boolean against that removal
+      while system.get_boolean("running") && meta.has(&tpid) && meta.get_boolean(&tpid) {
         let vec = stream.read(409600);
         if vec.len() > 0 {
           {
@@ -111,7 +113,7 @@ fn open_camera(tpid:String) {
   thread::spawn(move || {
     let system = DataStore::globals().get_object("system");
     let mut meta = system.get_object("apps").get_object("camera");
-    let streams = meta.get_object("streams");
+    let mut streams = meta.get_object("streams");
 
     let settings = settings(Data::DNull);
 
@@ -221,7 +223,7 @@ fn open_camera(tpid:String) {
       let reader = cmd.stdout.as_mut().unwrap();
       let mut buf = [0; 409600];
       let firsttime = Once::new();
-      while system.get_boolean("running") && meta.get_boolean(&tpid) {
+      while system.get_boolean("running") && meta.has(&tpid) && meta.get_boolean(&tpid) {
         let x = reader.read(&mut buf);
         if x.is_err() {  break; }
         let x = x.unwrap();
@@ -231,8 +233,20 @@ fn open_camera(tpid:String) {
           meta.put_int("time_1", time());
         });
         
-        for (_id, stream) in streams.objects() {
-          stream.bytes().write(&buf[0..x]);
+        let mut dead:Vec<String> = Vec::new();
+        for (sid, stream) in streams.objects() {
+          let bytes = stream.bytes();
+          // write() returns false once a consumer is gone (read side
+          // closed); the cap catches one that stopped reading but kept
+          // the stream open
+          if !bytes.write(&buf[0..x]) || bytes.current_len() > 33554432 {
+            dead.push(sid);
+          }
+        }
+        for sid in dead {
+          let b = streams.get_bytes(&sid);
+          b.close_write();
+          streams.remove_property(&sid);
         }
       }  
 

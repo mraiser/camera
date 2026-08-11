@@ -6,19 +6,137 @@ me.ready = function(){
   if (!ME.DATA.peer) me.prefix = "../";
   else me.prefix = "../peer/remote/"+ME.DATA.peer+"/";
   if (ME.DATA.controls == false) $(ME).find('.live-img-ctrls').css('display', 'none');
-  if (me.status.device) next();
+  if (me.status.device) start();
   else {
     json(me.prefix+'camera/status', null, function(result){
       var peer = ME.DATA.peer;
       if (result.data) {
         me.status = ME.DATA = result.data;
         me.status.peer = peer;
-        next();
+        start();
       }
       else setTimeout(me.ready, 1000);
     });
   }
 };
+
+// Live view, best transport first: when the DVR capture stream is running
+// and the browser has MSE, play the camera/live fragmented-MP4 stream in a
+// video element; on any failure fall back to the classic ~2s JPEG polling.
+function start(){
+  if (me.status.dvr && window.MediaSource && !me.msefailed && !me.pause) startMSE();
+  else next();
+}
+
+// The exact codec rides in the stream: read it from the codec config box
+// of the init segment (first fetch chunk) so any camera profile works
+// without guessing - avcC for H.264, vpcC for VP9.
+function typeFromInit(chunk){
+  var hex = function(b){ return ('0'+b.toString(16)).slice(-2); };
+  var dec2 = function(b){ return ('0'+b.toString(10)).slice(-2); };
+  for (var i=0; i+12 < chunk.length; i++) {
+    if (chunk[i]==0x61 && chunk[i+1]==0x76 && chunk[i+2]==0x63 && chunk[i+3]==0x43) { // 'avcC'
+      return 'video/mp4; codecs="avc1.'+hex(chunk[i+5])+hex(chunk[i+6])+hex(chunk[i+7])+'"';
+    }
+    if (chunk[i]==0x76 && chunk[i+1]==0x70 && chunk[i+2]==0x63 && chunk[i+3]==0x43) { // 'vpcC'
+      var profile = chunk[i+8], level = chunk[i+9], depth = chunk[i+10] >> 4;
+      return 'video/mp4; codecs="vp09.'+dec2(profile)+'.'+dec2(level)+'.'+dec2(depth)+'"';
+    }
+  }
+  return 'video/mp4; codecs="avc1.42e01f"';
+}
+
+function startMSE(){
+  var video = $(ME).find('.live-video')[0];
+  var ms = new MediaSource();
+  var aborter = new AbortController();
+  var queue = [];
+  var sb = null;
+  var dead = false;
+
+  function teardown(){
+    if (dead) return;
+    dead = true;
+    try { aborter.abort(); } catch(e) {}
+    try {
+      if (video.src) { URL.revokeObjectURL(video.src); video.removeAttribute('src'); video.load(); }
+    } catch(e) {}
+    $(ME).find('.live-video').css('display', 'none');
+    $(ME).find('.live-img').css('display', '');
+  }
+  me.stopMSE = teardown;
+
+  function fail(){
+    if (dead) return;
+    teardown();
+    me.msefailed = true;
+    next();
+  }
+
+  function pump(){
+    if (dead || !sb || sb.updating || !queue.length) return;
+    try {
+      if (video.buffered.length && video.buffered.end(video.buffered.length-1) - video.buffered.start(0) > 60) {
+        sb.remove(video.buffered.start(0), video.buffered.end(video.buffered.length-1) - 15);
+        return;
+      }
+      sb.appendBuffer(queue.shift());
+    } catch(e) { fail(); }
+  }
+
+  ms.addEventListener('sourceopen', function(){
+    fetch(me.prefix+'camera/live/live.mp4?t='+(new Date().getTime()), {signal: aborter.signal, credentials: 'same-origin'}).then(function(res){
+      if (!res.ok || !res.body) return fail();
+      var reader = res.body.getReader();
+      function loop(){
+        reader.read().then(function(r){
+          if (dead) return;
+          if (r.done) return fail();
+          if (!sb) {
+            var type = typeFromInit(r.value);
+            if (!MediaSource.isTypeSupported(type)) type = 'video/mp4; codecs="avc1.42e01f"';
+            try { sb = ms.addSourceBuffer(type); } catch(e) { return fail(); }
+            sb.addEventListener('updateend', pump);
+            sb.addEventListener('error', fail);
+          }
+          queue.push(r.value);
+          pump();
+          loop();
+        }, function(){ if (!dead) fail(); });
+      }
+      loop();
+    }, function(){ if (!dead) fail(); });
+  });
+  video.addEventListener('error', fail);
+
+  $(ME).find('.live-img').css('display', 'none');
+  $(ME).find('.live-video').css('display', 'block');
+  video.muted = true;
+  video.src = URL.createObjectURL(ms);
+  if (video.play) video.play().catch(function(){});
+
+  // stay near the live edge; honor pause (the DVR tabs set me.pause)
+  var watcher = setInterval(function(){
+    if (dead) { clearInterval(watcher); return; }
+    if (me.pause) {
+      clearInterval(watcher);
+      teardown();
+      watchPause();
+      return;
+    }
+    try {
+      if (video.buffered.length) {
+        var edge = video.buffered.end(video.buffered.length-1);
+        if (edge - video.currentTime > 5) video.currentTime = edge - 0.5;
+      }
+    } catch(e) {}
+  }, 2000);
+}
+
+function watchPause(){
+  if (me.pause) { setTimeout(watchPause, 500); return; }
+  start();
+}
 
 var q = 0;
 function next(){
@@ -38,8 +156,6 @@ function next(){
 }
 
 $(ME).find('.live-img').on("load", function(){
-//  var r = ($(ME).width() - $(this).width()) / 2; 
-//  $(ME).find('.live-img-ctrls').css('right', (r+20)+'px');
   setTimeout(next, 2000);
 });
 
@@ -49,6 +165,7 @@ $(ME).find('.live-img').on("error", function(){
 
 $(ME).find('.dvr-settings-button').click(function(e){
   me.pause = true;
+  if (me.stopMSE) me.stopMSE();
   e.selector = ".settings-popup";
   e.closeselector = ".close-camera-settings";
   e.modal = true;
@@ -56,6 +173,8 @@ $(ME).find('.dvr-settings-button').click(function(e){
     json(me.prefix+'camera/status', null, function(result){
       me.status = ME.DATA = result.data;
       me.pause = false; 
+      me.msefailed = false;
+      start();
       
       if (result.data.dvr) {
         $('.img-wrap').css('height', 'calc(100% - 45px)');
