@@ -74,16 +74,15 @@ Or install it as a service:
 
 ### NixOS
 
-Newbound's checkout carries a `default.nix` dev shell that includes the build toolchain and the camera app's
-runtime dependencies (FFmpeg, v4l-utils). Build and run from inside it:
+Newbound's checkout carries a `default.nix` dev shell with the build toolchain. The camera app's runtime tools are
+its own concern — bring them into the environment alongside it:
 
     cd Newbound
-    nix-shell
+    nix-shell default.nix -p ffmpeg v4l-utils    # add rpicam-apps for Pi CSI cameras
     cargo build --release --features=serde_support
     ./target/release/newbound
 
-For Raspberry Pi CSI cameras add `rpicam-apps` to the shell's package list. (A flake/NixOS module is not provided
-yet.)
+(A flake/NixOS module is not provided yet.)
 
 ### Activate the Camera app
 
