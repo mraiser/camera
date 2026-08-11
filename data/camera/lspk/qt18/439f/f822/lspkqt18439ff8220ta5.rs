@@ -52,6 +52,7 @@ fn write_video(stream:DataBytes, tpid:String){
       let mut vname2 = dest.join((vid+1).to_string()+".mp4");
       let beat = Duration::from_millis(10);
       //let start = time();
+      let firsttime = Once::new();
       while system.get_boolean("running") && (&meta).get_boolean(&tpid) {
         let vec = stream.read(409600);
         if vec.len() > 0 {
@@ -60,9 +61,16 @@ fn write_video(stream:DataBytes, tpid:String){
             if x1.is_err() {  break; }
           }
           if vname1.exists() && vname2.exists() {
-            let snow = std::fs::metadata(&vname1).unwrap().modified().unwrap();
+            let snow = std::fs::metadata(&vname1).unwrap().created().unwrap();
             let millis:i64 = snow.duration_since(UNIX_EPOCH).expect("error").as_millis().try_into().unwrap();
             //let millis:i64 = start + (vid * 2000);
+            
+            firsttime.call_once(|| {
+              let rounded = millis - (millis % 2000);
+              let offset = rounded - meta.get_int("time_1");
+              meta.put_int("offset", offset);
+            });
+            
             let mp4path = to_path(&storage, millis, "archive", "mp4").into_os_string().into_string().unwrap();
             let jpgpath = to_path(&storage, millis, "keyframes", "jpg").into_os_string().into_string().unwrap(); // FIXME - No guarantee this exists. Expensive to do twice in a row like that
             let _x = rename(&vname1, &mp4path);
@@ -205,11 +213,17 @@ fn open_camera(tpid:String) {
       let mut cmd = cmd.unwrap();
       let reader = cmd.stdout.as_mut().unwrap();
       let mut buf = [0; 409600];
+      let firsttime = Once::new();
       while system.get_boolean("running") && meta.get_boolean(&tpid) {
         let x = reader.read(&mut buf);
         if x.is_err() {  break; }
         let x = x.unwrap();
         if x == 0 { break; }
+        
+        firsttime.call_once(|| {
+          meta.put_int("time_1", time());
+        });
+        
         for (_id, stream) in streams.objects() {
           stream.bytes().write(&buf[0..x]);
         }

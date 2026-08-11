@@ -4,10 +4,13 @@ let settings = settings(Data::DNull);
 let storage = settings.get_string("storage");
 
 let recording = meta.has("last_keyframe") && time() - meta.get_int("last_keyframe") < 4000;
+let mut offset = 0;
+if meta.has("offset") { offset = meta.get_int("offset"); }
 
 let mut o = settings.deep_copy();
 o.put_object("app", meta.get_object("app"));
 o.put_boolean("recording", recording);
+o.put_int("offset", offset);
 
 let keyframes = Path::new(&storage).join("keyframes");
 if keyframes.exists(){
