@@ -5,3 +5,7 @@ camera/Cargo.lock
 # Local runtime values never ride the repo
 /runtime/camera/botd.properties
 /runtime/camera/storage
+
+# Server runtime state, if an instance is ever run from inside this repo
+/config.properties
+/users/
