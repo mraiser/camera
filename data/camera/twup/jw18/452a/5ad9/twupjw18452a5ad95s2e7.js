@@ -115,6 +115,13 @@ function startMSE(){
   video.src = URL.createObjectURL(ms);
   if (video.play) video.play().catch(function(){});
 
+  // stall watchdog: if nothing has buffered within 12s (headerless
+  // mid-stream attach on an old capture process, proxy hiccup, ...)
+  // degrade to polling instead of showing a black video forever
+  setTimeout(function(){
+    if (!dead && !(video.buffered && video.buffered.length)) fail();
+  }, 12000);
+
   // stay near the live edge; honor pause (the DVR tabs set me.pause)
   var watcher = setInterval(function(){
     if (dead) { clearInterval(watcher); return; }

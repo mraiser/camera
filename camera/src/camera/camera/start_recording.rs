@@ -212,6 +212,11 @@ fn open_camera(tpid:String) {
 
       o.push("--framerate".to_owned());
       o.push(fps.to_string());
+      // repeat SPS/PPS with every intra frame: live viewers attach to the
+      // fan-out mid-stream and cannot decode without in-band headers (the
+      // DVR segmenter is immune - it attaches at stream start and bakes
+      // the headers into every segment)
+      o.push("--inline".to_owned());
       o.push("--nopreview".to_owned());
       o.push("-t".to_owned());
       o.push("0".to_owned());
