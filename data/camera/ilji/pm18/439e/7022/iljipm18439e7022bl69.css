@@ -23,8 +23,13 @@
 }
 
 #dvrgoeshere {
-  position:fixed;
-  top:62px;
+  /* absolute, not fixed: position:fixed creates a stacking context in
+     Blink, trapping every modal opened from inside (the settings
+     dialog's z-index:15 loses to the body-level backdrop at z-index:5
+     and the whole app renders under the veil, clicks included).
+     .cammain already pins this same rectangle. */
+  position:absolute;
+  top:0px;
   left:0px;
   right:0px;
   bottom:0px;

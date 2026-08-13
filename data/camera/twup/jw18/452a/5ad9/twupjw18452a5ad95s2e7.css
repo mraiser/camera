@@ -48,10 +48,20 @@
   margin-right:20px;
 }
 
+/* .upper-right centers against the nearest positioned ancestor - anchor
+   the close X to the dialog header, not the whole 620px dialog */
+.settings-popup .dialog-header{
+  position:relative;
+}
+
 .settings-popup{
   display:none;
   width:1024px;
-  max-width:90%;
+  /* vw, not %: the popup kit measures this element while it is briefly
+     position:absolute inside its host (the HUD panel is ~600px wide),
+     then centers it as position:fixed - a %-based max-width resolves
+     differently in the two states and mis-centers the dialog */
+  max-width:90vw;
   height:620px;
   background-color:white;
   color:black;
