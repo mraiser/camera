@@ -113,6 +113,14 @@ function startMSE(){
   $(ME).find('.live-video').css('display', 'block');
   video.muted = true;
   video.src = URL.createObjectURL(ms);
+  
+  // Wait for video metadata to load before triggering resize
+  $(video).off('loadedmetadata');
+  $(video).on('loadedmetadata', function() {
+    // Trigger resize event on .live-video to ensure proper sizing in HUD
+    $('.live-video').resize();
+  });
+  
   if (video.play) video.play().catch(function(){});
 
   // stall watchdog: if nothing has buffered within 12s (headerless

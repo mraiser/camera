@@ -122,8 +122,20 @@ function play(start, stop) {
   $(ME).find('.snap-wrap').css('display', 'none');
   var url = me.prefix+'camera/play/'+start+'_'+stop+'.mp4';
   me.live.pause = true;
-  $(ME).find('.video-wrap-video').prop('src', url);
-  $(ME).find('.video-wrap').css('display', 'block');
+  var el = $(ME).find('.video-wrap-video');
+  el[0].pause();
+  el[0].removeAttribute('src');
+  el[0].load();
+  el[0].src = url;
+  
+  // Wait for video metadata to load before showing and resizing
+  el.off('loadedmetadata');
+  el.on('loadedmetadata', function() {
+    $(ME).find('.video-wrap').css('display', 'block');
+    adjustSizes();
+    // Trigger resize event on .live-video to ensure proper sizing in HUD
+    $('.live-video').resize();
+  });
 }
 
 $(ME).find('.dvrplaybutton').click(function(){
