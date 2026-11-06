@@ -9,17 +9,29 @@ me.ready = function(){
   // step 0a: when nothing on this UA can go full screen (iPhone Safari has
   // no element fullscreen and no video webkitEnterFullscreen), hide the button
   var fsprobe = $(ME).find('.live-wrap')[0];
-  if (!fsprobe.requestFullscreen && !fsprobe.webkitRequestFullscreen && !$(ME).find('.live-video')[0].webkitEnterFullscreen) {
-    $(ME).find('.fullscreen-button').css('display', 'none');
-  }
-  // C7: ask available first - a camera that is not there gets a sentence,
-  // not a test card and a retry loop
-  json(me.prefix+'camera/available', null, function(result){
-    var tree = (result && result.status == 'ok' && result.data) ? result.data : {};
-    for (var k in tree) { waitStatus(); return; }
-    noCamera();
-  });
+  me.fsSupported = !!(fsprobe.requestFullscreen || fsprobe.webkitRequestFullscreen || $(ME).find('.live-video')[0].webkitEnterFullscreen);
+  if (!me.fsSupported) $(ME).find('.fullscreen-button').css('display', 'none');
+  // C7 / step 0b: ask available first. Only an ok reply with an empty tree
+  // is "no camera"; an error or unreachable peer shows its reason and
+  // retries with a backoff, never the test card.
+  checkAvailable(1000);
 };
+
+// step 0b: distinguish ok-but-empty (no camera) from an error reply or an
+// unreachable peer (say why, retry with a growing backoff, not every second)
+function checkAvailable(delay){
+  json(me.prefix+'camera/available', null, function(result){
+    if (result && result.status == 'ok') {
+      var tree = result.data || {};
+      for (var k in tree) { waitStatus(); return; }
+      noCamera();
+      return;
+    }
+    cameraError((result && result.msg) ? result.msg : null);
+    var next = Math.min((delay || 1000) * 2, 30000);
+    setTimeout(function(){ checkAvailable(next); }, next);
+  });
+}
 
 function waitStatus(){
   if (me.status.device) { start(); return; }
@@ -38,9 +50,24 @@ function waitStatus(){
 function noCamera(){
   showConnecting(false);
   $(ME).find('.live-img, .live-video').css('display', 'none');
+  // step 0d: no picture, so hide ⛶ (and its exit twin); keep ⚙ so the
+  // camera can still be set up
+  $(ME).find('.fullscreen-button, .fullscreen-exit-button').css('display', 'none');
   var el = $(ME).find('.live-nocam');
   el.text('No camera found.').css('display', 'block');
   peerName(function(name){ el.text('No camera found on ' + name + '.'); });
+}
+
+// step 0b: the camera could not be reached (error reply, peer down). Say
+// why; same no-picture, no-⛶ treatment. The backoff keeps retrying.
+function cameraError(reason){
+  showConnecting(false);
+  $(ME).find('.live-img, .live-video').css('display', 'none');
+  $(ME).find('.fullscreen-button, .fullscreen-exit-button').css('display', 'none');
+  var el = $(ME).find('.live-nocam');
+  el.css('display', 'block');
+  if (reason) { el.text(reason); return; }
+  peerName(function(name){ el.text("Can't reach " + name + "."); });
 }
 
 // the viewing instance's own peer list names the peer; local is this machine
@@ -60,6 +87,11 @@ function peerName(cb){
 // and the browser has MSE, play the camera/live fragmented-MP4 stream in a
 // video element; on any failure fall back to the classic ~2s JPEG polling.
 function start(){
+  // a camera was found: back to picture mode (a prior error/no-camera pass
+  // may have hidden the picture and ⛶)
+  $(ME).find('.live-nocam').css('display', 'none');
+  $(ME).find('.live-img').css('display', '');
+  if (me.fsSupported) $(ME).find('.fullscreen-button').css('display', '');
   showConnecting(true);
   if (me.status.dvr && window.MediaSource && !me.msefailed && !me.pause) startMSE();
   else next();
