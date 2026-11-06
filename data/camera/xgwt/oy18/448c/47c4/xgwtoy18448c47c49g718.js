@@ -22,7 +22,21 @@ me.ready = function(){
           var s = i == val ? ' selected' : '';
           newhtml += "<option"+s+">"+i+"</option>";
         }
-        if (!count) newhtml = "<option disabled selected>No cameras detected</option>";
+        if (!count) {
+          // C7: no camera - one sentence, no empty selects, no preview retries
+          $(ME).find('.cam-fields').css('display', 'none');
+          var el = $(ME).find('.nocam-message');
+          el.text('No camera found.').css('display', 'block');
+          if (ME.DATA.peer) json('../peer/peers', null, function(r){
+            var list = (r && r.data && r.data.list) || (r && r.data) || [];
+            for (var i = 0; i < list.length; i++) {
+              var p = list[i];
+              if (p && (p.id == ME.DATA.peer || p.uuid == ME.DATA.peer)) { el.text('No camera found on ' + (p.displayname || p.name) + '.'); return; }
+            }
+          });
+          else el.text('No camera found on this machine.');
+          return;
+        }
         $(ME).find('#select-camera').html(newhtml).on('change', buildDevices);
         buildDevices();
         snapShot();

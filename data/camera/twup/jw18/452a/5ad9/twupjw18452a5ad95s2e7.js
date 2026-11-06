@@ -12,19 +12,49 @@ me.ready = function(){
   if (!fsprobe.requestFullscreen && !fsprobe.webkitRequestFullscreen && !$(ME).find('.live-video')[0].webkitEnterFullscreen) {
     $(ME).find('.fullscreen-button').css('display', 'none');
   }
-  if (me.status.device) start();
-  else {
-    json(me.prefix+'camera/status', null, function(result){
-      var peer = ME.DATA.peer;
-      if (result.data) {
-        me.status = ME.DATA = result.data;
-        me.status.peer = peer;
-        start();
-      }
-      else setTimeout(me.ready, 1000);
-    });
-  }
+  // C7: ask available first - a camera that is not there gets a sentence,
+  // not a test card and a retry loop
+  json(me.prefix+'camera/available', null, function(result){
+    var tree = (result && result.status == 'ok' && result.data) ? result.data : {};
+    for (var k in tree) { waitStatus(); return; }
+    noCamera();
+  });
 };
+
+function waitStatus(){
+  if (me.status.device) { start(); return; }
+  json(me.prefix+'camera/status', null, function(result){
+    var peer = ME.DATA.peer;
+    if (result.data) {
+      me.status = ME.DATA = result.data;
+      me.status.peer = peer;
+      start();
+    }
+    else setTimeout(waitStatus, 1000);
+  });
+}
+
+// C7: the no-camera state speaks; no test card, no polling
+function noCamera(){
+  showConnecting(false);
+  $(ME).find('.live-img, .live-video').css('display', 'none');
+  var el = $(ME).find('.live-nocam');
+  el.text('No camera found.').css('display', 'block');
+  peerName(function(name){ el.text('No camera found on ' + name + '.'); });
+}
+
+// the viewing instance's own peer list names the peer; local is this machine
+function peerName(cb){
+  if (!ME.DATA.peer) { cb('this machine'); return; }
+  json('../peer/peers', null, function(r){
+    var list = (r && r.data && r.data.list) || (r && r.data) || [];
+    for (var i = 0; i < list.length; i++) {
+      var p = list[i];
+      if (p && (p.id == ME.DATA.peer || p.uuid == ME.DATA.peer)) { cb(p.displayname || p.name || ME.DATA.peer); return; }
+    }
+    cb(ME.DATA.peer);
+  });
+}
 
 // Live view, best transport first: when the DVR capture stream is running
 // and the browser has MSE, play the camera/live fragmented-MP4 stream in a
