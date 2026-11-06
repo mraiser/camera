@@ -6,6 +6,12 @@ me.ready = function(){
   if (!ME.DATA.peer) me.prefix = "../";
   else me.prefix = "../peer/remote/"+ME.DATA.peer+"/";
   if (ME.DATA.controls == false) $(ME).find('.live-img-ctrls').css('display', 'none');
+  // step 0a: when nothing on this UA can go full screen (iPhone Safari has
+  // no element fullscreen and no video webkitEnterFullscreen), hide the button
+  var fsprobe = $(ME).find('.live-wrap')[0];
+  if (!fsprobe.requestFullscreen && !fsprobe.webkitRequestFullscreen && !$(ME).find('.live-video')[0].webkitEnterFullscreen) {
+    $(ME).find('.fullscreen-button').css('display', 'none');
+  }
   if (me.status.device) start();
   else {
     json(me.prefix+'camera/status', null, function(result){
@@ -236,9 +242,28 @@ $(ME).find('.fullscreen-button').click(function(){
   try {
     if (elem.requestFullscreen) p = elem.requestFullscreen();
     else if (elem.webkitRequestFullscreen) p = elem.webkitRequestFullscreen(); /* Safari */
+    else { /* iPhone Safari: no element full screen - the video itself can */
+      var v = fsVideo();
+      if (v) v.webkitEnterFullscreen();
+    }
   } catch(e) {}
   if (p && p.catch) p.catch(function(){});
 });
+
+// the video showing in this picture area (DVR playback or live) - iPhone
+// Safari offers video-only full screen through webkitEnterFullscreen
+function fsVideo(){
+  var pw = $(ME).closest('.picture-wrap');
+  var scope = pw.length ? pw[0] : ME;
+  var vids = scope.querySelectorAll('video');
+  var fallback = null;
+  for (var i = 0; i < vids.length; i++) {
+    if (!vids[i].webkitEnterFullscreen) continue;
+    if (!fallback) fallback = vids[i];
+    if (vids[i].offsetParent !== null) return vids[i];
+  }
+  return fallback;
+}
 
 $(ME).find('.fullscreen-exit-button').click(function(){
   try {

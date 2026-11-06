@@ -92,16 +92,28 @@
   color:white;
 }
 
+/* step 0b: every picker shows its whole value - compact padding, widths
+   that fit "2026"/"Nov", and the row wraps between the date and time
+   groups instead of clipping at a 360px panel */
 .dvr-wrap .dvryearselect{
-  width:60px;
+  width:74px;
 }
 
 .dvr-wrap .dvrmonthselect{
-  width:90px;
+  width:64px;
 }
 
 .dvr-wrap .dvrdateselect, .dvr-wrap .dvrhourselect, .dvr-wrap .dvrminselect, .dvr-wrap .dvrsecselect {
-  width:40px;
+  width:52px;
+}
+
+.dvr-wrap .timeselect .textinput{
+  padding:10px 6px;
+}
+
+.dvr-wrap .dvr-date-part, .dvr-wrap .dvr-time-part{
+  white-space:nowrap;
+  display:inline-block;
 }
 
 .dvr-wrap .dvryearselect, .dvr-wrap .dvrmonthselect, .dvr-wrap .dvrdateselect, .dvr-wrap .dvrhourselect, .dvr-wrap .dvrminselect, .dvr-wrap .dvrsecselect {

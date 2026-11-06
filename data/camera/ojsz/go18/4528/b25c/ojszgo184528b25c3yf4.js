@@ -222,7 +222,7 @@ function buildTimePicker(){
     if (met>me.status.first && mst<me.status.last){
       d = {
         "id": ""+i,
-        "name": monthnames[i]
+        "name": monthnames[i].substring(0, 3)
       };
       months.push(d);
     }
