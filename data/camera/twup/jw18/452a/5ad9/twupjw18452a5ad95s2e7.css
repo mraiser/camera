@@ -1,68 +1,155 @@
 .live-wrap {
+  width:100%;
   height:100%;
   position:relative;
   text-align:center;
 }
 
-.live-img {
-  position:relative;
-  max-width:100%;
-  max-height:100%;
-  margin-left:auto;
-  margin-right:auto;
+/* C7: "No camera found on <peer>." - a sentence, not a test card */
+.live-wrap .live-nocam {
+  display:none;
+  position:absolute;
+  top:50%;
+  left:0;
+  width:100%;
+  transform:translateY(-50%);
+  text-align:center;
+  padding:0 16px;
+  box-sizing:border-box;
+  color:var(--text);
 }
 
-.live-img-ctrls{
+/* C4: "Connecting…" on the tile's own background while the stream starts */
+.live-wrap .live-connecting {
+  display:none;
+  position:absolute;
+  top:50%;
+  left:0;
+  width:100%;
+  transform:translateY(-50%);
+  text-align:center;
+  padding:0 16px;
+  box-sizing:border-box;
+  color:var(--text-dim);
+}
+
+/* C3: the live picture fills the tile's picture area (the dvr control's
+   aspect-ratio box), letterboxed at its own ratio when they differ */
+.live-wrap .live-img, .live-wrap .live-video {
+  display:block;
+  width:100%;
+  height:100%;
+  object-fit:contain;
+}
+
+.live-wrap .live-img-ctrls{
   position:absolute;
   right:20px;
   bottom:20px;
   padding:5px;
   background-color:#88888888;
+  /* C3: above the snapshot/playback overlays that follow img-wrap in the
+     DOM, and still under the kit's modal backdrop (.greyedout, 5) so the
+     bar dims like everything else when a dialog opens */
+  z-index:2;
 }
 
-.fullscreen-button, .fullscreen-exit-button{
+.live-wrap .live-img-ctrls button{
   width:32px;
   height:32px;
+  padding:0;
+  border:none;
+  background-color:transparent;
+  cursor:pointer;
+  vertical-align:middle;
+}
+
+.live-wrap .dvr-settings-button{
+  margin-right:20px;
+}
+
+.live-wrap .dvr-settings-button img{
+  display:block;
+  width:32px;
+  height:32px;
+}
+
+.live-wrap .fullscreen-button, .live-wrap .fullscreen-exit-button{
   background-image: url(../app/asset/app/fullscreen_icon.png);
   background-size:cover;
   display:inline-block;
 }
 
-.fullscreen-button:hover, .fullscreen-exit-button:hover{
+.live-wrap .fullscreen-button:hover, .live-wrap .fullscreen-exit-button:hover{
   background-image: url(../app/asset/app/fullscreen_icon_hover.png);
 }
 
-.fullscreen-exit-button{
+.live-wrap .fullscreen-exit-button{
   background-image: url(../app/asset/app/fullscreen_exit_icon.png);
   display:none;
 }
 
-.fullscreen-exit-button:hover{
+.live-wrap .fullscreen-exit-button:hover{
   background-image: url(../app/asset/app/fullscreen_exit_icon_hover.png);
 }
 
-.dvr-settings-button{
-  width:32px;
-  height:32px;
-  display:inline-block;
-  margin-right:20px;
-}
-
-/* .upper-right centers against the nearest positioned ancestor - anchor
-   the close X to the dialog header, not the whole 620px dialog */
-.settings-popup .dialog-header{
-  position:relative;
-}
-
-.settings-popup{
+/* C5: the kit's dark dialog - graphite body and panel-2 header, the same
+   palette as the app's Settings dialog (Applications - gear). The dialog
+   itself is the scroll container capped to the window; its header and the
+   Save footer are sticky, so they stay put and only the middle scrolls.
+   Content-sized width (min, not a fixed 1024px void); stacks under 640px. */
+.camera-settings-popup{
   display:none;
-  width:1024px;
+  width:min(760px, 92vw);
   /* vw, not %: the popup kit measures this element while it is briefly
      position:absolute inside its host (the HUD panel is ~600px wide),
-     then centers it as position:fixed - a %-based max-width resolves
+     then centers it as position:fixed - a %-based width resolves
      differently in the two states and mis-centers the dialog */
-  max-width:90vw;
-  height:620px;
-  background-color:white;
-  color:black;
+  max-width:92vw;
+  max-height:calc(100vh - 32px);
+  overflow-y:auto;
+  overflow-x:hidden;
+  background-color:var(--panel);
+  color:var(--text);
+  border:1px solid var(--line);
+  border-radius:var(--border-radius-md);
+}
+
+/* the header pins to the top of the scrolling dialog. It is position:sticky
+   (a positioned element), so the absolute close X still anchors to it. */
+.camera-settings-popup .dialog-header{
+  position:sticky;
+  top:0;
+  z-index:2;
+}
+
+/* Save pins as a footer band at the bottom, always reachable even at
+   1280x600; the body content scrolls behind it */
+.camera-settings-popup .dialog-footer{
+  position:sticky;
+  bottom:0;
+  z-index:2;
+  background-color:var(--panel);
+  padding-top:12px;
+  margin-top:16px;
+}
+
+.camera-settings-popup .save-camera-settings{
+  display:block;
+  width:100%;
+  box-sizing:border-box;
+}
+
+/* C5 item 4: under a narrow window, one column with the preview on top.
+   The two settings bodies are 3-column tables (fields | spacer | preview);
+   unfold each row into a column and lift the preview above the fields. */
+@media (max-width: 640px){
+  .camera-settings-popup table,
+  .camera-settings-popup table tbody{ display:block; }
+  .camera-settings-popup table tr{ display:flex; flex-direction:column; }
+  .camera-settings-popup table td{ display:block; width:auto !important; }
+  .camera-settings-popup table td:last-child{ order:-1; }      /* preview on top */
+  .camera-settings-popup table td[width="20"]{ display:none; } /* the spacer */
+  .camera-settings-popup #snapshot,
+  .camera-settings-popup #keyframe{ max-width:100%; margin-bottom:16px; }
 }

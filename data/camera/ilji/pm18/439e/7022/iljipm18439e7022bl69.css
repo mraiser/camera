@@ -20,6 +20,10 @@
   left:0px;
   bottom:0px;
   right:0px;
+  /* C3: the tile's height follows its content now (picture at full width
+     + tab bar + tab content), which can exceed the window - scroll the
+     page body instead of clipping the tabs away */
+  overflow-y:auto;
 }
 
 #dvrgoeshere {

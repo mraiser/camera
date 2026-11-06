@@ -34,9 +34,8 @@ me.build = function(){
   });
 
   $(ME).find('.tab-dvr').click(function(){
-    buildTimePicker();
+    renderDvrTab();
     $(ME).find('.video-wrap').css('display', 'none');
-    $(ME).find('.live-img-ctrls').css('display', 'none');
     var el = $(ME).find('.video-wrap-video');
     el[0].pause();
     el[0].removeAttribute('src');
@@ -48,7 +47,6 @@ me.build = function(){
     me.live.pause = false;
     $(ME).find('.snap-wrap').css('display', 'none');
     $(ME).find('.video-wrap').css('display', 'none');
-    $(ME).find('.live-img-ctrls').css('display', 'block');
     var el = $(ME).find('.video-wrap-video');
     el[0].pause();
     el[0].removeAttribute('src');
@@ -58,10 +56,16 @@ me.build = function(){
 
   $(ME).find('.tab-events').click(function(){
     $(ME).find('.snap-wrap').css('display', 'none');
-    $(ME).find('.live-img-ctrls').css('display', 'none');
     var div = $(ME).find('.event-images');
     div.empty();
     var render = function(result){
+      // C4: the tab says what's going on - motion off, or on with nothing yet
+      var list = (result && result.data) ? result.data : [];
+      var msg = $(ME).find('.events-message');
+      if (me.status && !me.status.motion) msg.text('Motion detection is off. Turn it on in ⚙ Settings.').css('display', 'block');
+      else if (!list.length) msg.text('No motion events yet.').css('display', 'block');
+      else msg.css('display', 'none');
+      $(ME).find('.event-images').css('display', list.length ? 'block' : 'none');
       if (!result.data) return;
       result.data.sort(function(a,b){
         return a.time - b.time;
@@ -110,7 +114,11 @@ function buildThumbs(){
   $(ME).find('.download_selected').prop('href', me.prefix+'camera/play/'+start+'_'+stop+'.mp4');
 }
 
-$(ME).find('.durationslider').change(buildThumbs);
+// C4: the Duration readout follows the drag; thumbnails rebuild on release
+$(ME).find('.durationslider').on('input', function(){
+  $(ME).find('.durationslidervalue').val(parseLen(parseInt($(this).val())));
+});
+$(ME).find('.durationslider').on('change', buildThumbs);
 
 function showClip(e) {
   var start = me.dvrtime = $(this).data('start');
@@ -133,13 +141,45 @@ function play(start, stop) {
   el.on('loadedmetadata', function() {
     $(ME).find('.video-wrap').css('display', 'block');
     adjustSizes();
-    // Trigger resize event on .live-video to ensure proper sizing in HUD
-    $('.live-video').resize();
+    $(ME).find('.live-video').resize();
   });
 }
 
 $(ME).find('.dvrplaybutton').click(function(){
+  if (!(me.dvrstart > 0)) return;
   play(me.dvrstart, me.dvrstop);
+});
+
+// C4: the DVR tab says what's going on - off, empty, or the picker
+function renderDvrTab(){
+  var msg = $(ME).find('.dvr-message');
+  var ctl = $(ME).find('.dvr-controls');
+  if (!me.status || !me.status.dvr) {
+    msg.text('DVR is off. Turn it on in ⚙ Settings.').css('display', 'block');
+    $(ME).find('.dvr-images').css('display', 'none');
+    ctl.css('display', 'none');
+    return;
+  }
+  var empty = !me.status.first || !me.status.last;
+  ctl.css('display', 'block');
+  $(ME).find('.dvr-pickers, .dvr-duration').css('display', empty ? 'none' : 'inline-block');
+  $(ME).find('.dvrplaybutton, .dvrdownloadbutton').prop('disabled', empty);
+  $(ME).find('.dvr-images').css('display', empty ? 'none' : 'block');
+  if (empty) {
+    msg.text('No recordings yet.').css('display', 'block');
+    $(ME).find('.download_selected').removeAttr('href');
+  }
+  else {
+    msg.css('display', 'none');
+    buildTimePicker();
+  }
+}
+
+// the live control announces fresh status when the settings dialog closes
+$(ME).on('camera-status', function(e, status){
+  if (status) me.status = status;
+  adjustSizes();
+  if ($(ME).find('.navbar-tab.selected').data('id') == 'cam-dvr') renderDvrTab();
 });
 
 me.loadSnap = function(time, cb){
@@ -151,42 +191,22 @@ me.loadSnap = function(time, cb){
 };
 
 function adjustSizes(){
+  // C3: a fit before camera/status answers is a no-op, never an error
+  if (!me.status) return;
   var res = me.status.resolution;
-  if (res) {
-    if (typeof res == "string")
-      res = res.split("x");
-  }
-  else res = me.status.resolution = ['1920','1080'];
+  if (typeof res == "string") res = res.split("x");
+  else if (!res) res = ['1920','1080'];
   var resw = parseInt(res[0]);
   var resh = parseInt(res[1]);
-  var r = resw / resh;
-  
-  var navh = me.status.dvr ? $(ME).find('.dvr-navbar').height() : 0;
-  
-  var allh = $(ME).height() - navh;
-  var allw = $(ME).width();
-
-  if (resh > allh) {
-    resw = allh * r;
-    resh = allh;
-    allw = Math.min(allw, resw);
-  }
-
-  if (resw > allw) {
-    resh = allw / r;
-    resw = allw;
-    allh = resh;
-  }
-  
-  $(ME).find('.dvr-wrap').css('height', ''+resh+'px');
-  $(ME).find('.imgwidth').css('width', ''+resw+'px');
-  
-  if (me.status.dvr) {
-    $(ME).find('.dvr-navbar').css('display', 'block');
-  }
-  else {
-    $(ME).find('.dvr-navbar').css('display', 'none');
-  }
+  if (!(resw > 0) || !(resh > 0)) { resw = 1920; resh = 1080; }
+  // rotation turns the frames portrait; the picture box follows them
+  var rot = parseInt(me.status.rotation);
+  if (rot == 90 || rot == 270) { var t = resw; resw = resh; resh = t; }
+  // pure CSS does the fit: full tile width at the picture's own ratio,
+  // whatever order the first fit and the live install happen in
+  $(ME).find('.picture-wrap').css('aspect-ratio', resw + ' / ' + resh);
+  // C4: the tabs always show; the DVR tab itself says when DVR is off
+  $(ME).find('.dvr-navbar').css('display', 'block');
 }
 
 function updateSlide(){
@@ -247,7 +267,7 @@ function buildTimePicker(){
     if (met>me.status.first && mst<me.status.last){
       d = {
         "id": ""+i,
-        "name": monthnames[i]
+        "name": monthnames[i].substring(0, 3)
       };
       months.push(d);
     }
@@ -360,5 +380,11 @@ function parseTime(d){
   return parseDate(d)+':'+padZero(d.getSeconds());
 }
 
-$(window).resize(adjustSizes);
-//console.log($(ME).width()+"x"+$(ME).height()+", "+me.status.resolution);
+// C3: refit from the tile's own box (dragging the Peers panel never fires
+// window.resize, and window handlers piled up one per remount). One
+// observer per mount; it drops itself when the tile leaves the page.
+me.sizer = new ResizeObserver(function(){
+  if (!ME.isConnected) { me.sizer.disconnect(); return; }
+  adjustSizes();
+});
+me.sizer.observe(ME);

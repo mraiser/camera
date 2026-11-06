@@ -61,7 +61,7 @@ if is_libcamera(&device) {
 else {
   // device comes straight off the URL; V4L2 capture devices live under
   // /dev - refuse anything else (ffmpeg -i would happily read any path)
-  if !device.starts_with("/dev/") { return temp; }
+  if !device.starts_with("/dev/") { panic!("snapshot failed: '{}' is not a camera device on this machine", device); }
   let mut t = t.to_string();
   if rot == 90 || rot == 270 { // FIXME - If camera supports portrait scaling degrades the image unnecessarily
     let q = (width*width)/height;
@@ -92,6 +92,12 @@ else {
   let _x = system_call(o);
 }
 
+
+// C7: a capture that produced no image is an error, never a path to a file
+// that was never written
+if !t1.exists() {
+  panic!("snapshot failed: the capture tool wrote no image for device '{}' - the camera may be disconnected or its capture tool (rpicam-still / ffmpeg) missing", device);
+}
 
 thread::spawn(move || {
   thread::sleep(Duration::from_millis(10000));

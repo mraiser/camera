@@ -1,26 +1,34 @@
 <div id='dvr-ui'></div>
 <div class='wrap dvr-wrap'>
-  <div class='img-wrap'></div>
-  <div class='video-wrap'><video class="video-wrap-video imgwidth" controls="true" autoplay="true" allowfullscreen="true" width="100%" height="100%" style="background-color:black;"></video></div>
-  <div class="snap-wrap" width="100%" height="100%"><img class="snap-wrap-img  imgwidth"></div>
+  <div class='picture-wrap'>
+    <div class='img-wrap'></div>
+    <div class='video-wrap'><video class="video-wrap-video" controls="true" autoplay="true" allowfullscreen="true" width="100%" height="100%"></video></div>
+    <div class="snap-wrap"><img class="snap-wrap-img"></div>
+  </div>
   <div class='dvr-navbar hideme'>
     <div class='navbar navbar-dark'>
-      <div class='navbar-tab selected tab-live' data-id='tab1'>Live</div>
-      <div class='navbar-tab tab-dvr' data-id='tab2'>DVR</div>
-      <div class='navbar-tab tab-events' data-id='tab3'>Events</div>
+      <div class='navbar-tab selected tab-live' data-id='cam-live'>Live</div>
+      <div class='navbar-tab tab-dvr' data-id='cam-dvr'>DVR</div>
+      <div class='navbar-tab tab-events' data-id='cam-events'>Events</div>
     </div>
-    <div class='tab-content tab2'>
+    <div class='tab-content cam-live selected'></div>
+    <div class='tab-content cam-dvr'>
+      <div class='tab-message dvr-message'></div>
       <div class='dvr-images'></div>
-      <center>
-        <div class='rvctable'>
-          <div class='dvryearselect timeselect'></div>
-          <div class='dvrmonthselect timeselect'></div>
-          <div class='dvrdateselect timeselect'></div>
-          <div class='dvrhourselect timeselect'></div>:&nbsp;&nbsp;
-          <div class='dvrminselect timeselect'></div>:&nbsp;&nbsp;
-          <div class='dvrsecselect timeselect'></div>
+      <center class='dvr-controls'>
+        <div class='rvctable dvr-pickers'>
+          <span class='dvr-date-part'>
+            <div class='dvryearselect timeselect'></div>
+            <div class='dvrmonthselect timeselect'></div>
+            <div class='dvrdateselect timeselect'></div>
+          </span>
+          <span class='dvr-time-part'>
+            <div class='dvrhourselect timeselect'></div>:&nbsp;&nbsp;
+            <div class='dvrminselect timeselect'></div>:&nbsp;&nbsp;
+            <div class='dvrsecselect timeselect'></div>
+          </span>
         </div>
-        <div class='rvctable'>
+        <div class='rvctable dvr-duration'>
           <div class='textinputlabel durationsliderlable'>Duration:
             <input type='text' class='durationslidervalue'>
           </div>
@@ -36,7 +44,8 @@
         </div>
       </center>
     </div>
-    <div class='tab-content tab3'>
+    <div class='tab-content cam-events'>
+      <div class='tab-message events-message'></div>
       <div class='event-images'></div>
     </div>
   </div>

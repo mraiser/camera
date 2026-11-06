@@ -21,3 +21,63 @@
 .rvs-sense, .rvs-noise {
   width:100% !important;
 }
+
+/* C6: two titled sections, Camera and Recording */
+.camera-settings-popup .section-title {
+  font-size:12px;
+  font-weight:600;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+  color:var(--text-dim);
+  margin:4px 0 12px;
+}
+
+.camera-settings-popup .section-note {
+  display:none;
+  color:var(--text-dim);
+  font-style:italic;
+  margin-bottom:12px;
+}
+
+.camera-settings-popup .switchrow {
+  display:block;
+  margin:4px 0 8px;
+  cursor:pointer;
+}
+
+.camera-settings-popup .rec-fields {
+  max-width:280px;
+  transition:opacity .15s;
+}
+
+.camera-settings-popup .rec-fields .textinputlabel {
+  margin-top:12px;
+}
+
+.camera-settings-popup .rec-fields .switchrow {
+  margin-top:16px;
+}
+
+/* DVR off: the recording fields stay visible but dimmed until DVR is on */
+.camera-settings-popup .rec-fields.dimmed {
+  opacity:.45;
+}
+
+.camera-settings-popup .motion-settings {
+  display:none;
+  margin:8px 16px 0;
+}
+
+.camera-settings-popup .save-error {
+  display:none;
+  color:var(--danger);
+  margin-bottom:8px;
+}
+
+/* C9: the current slider value, beside its label */
+.sliderval {
+  color:var(--text);
+  letter-spacing:normal;
+  font-weight:600;
+  margin-left:6px;
+}

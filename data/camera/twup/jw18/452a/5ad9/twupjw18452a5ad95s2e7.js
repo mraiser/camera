@@ -6,26 +6,102 @@ me.ready = function(){
   if (!ME.DATA.peer) me.prefix = "../";
   else me.prefix = "../peer/remote/"+ME.DATA.peer+"/";
   if (ME.DATA.controls == false) $(ME).find('.live-img-ctrls').css('display', 'none');
-  if (me.status.device) start();
-  else {
-    json(me.prefix+'camera/status', null, function(result){
-      var peer = ME.DATA.peer;
-      if (result.data) {
-        me.status = ME.DATA = result.data;
-        me.status.peer = peer;
-        start();
-      }
-      else setTimeout(me.ready, 1000);
-    });
-  }
+  // step 0a: when nothing on this UA can go full screen (iPhone Safari has
+  // no element fullscreen and no video webkitEnterFullscreen), hide the button
+  var fsprobe = $(ME).find('.live-wrap')[0];
+  me.fsSupported = !!(fsprobe.requestFullscreen || fsprobe.webkitRequestFullscreen || $(ME).find('.live-video')[0].webkitEnterFullscreen);
+  if (!me.fsSupported) $(ME).find('.fullscreen-button').css('display', 'none');
+  // C7 / step 0b: ask available first. Only an ok reply with an empty tree
+  // is "no camera"; an error or unreachable peer shows its reason and
+  // retries with a backoff, never the test card.
+  checkAvailable(1000);
 };
+
+// step 0b: distinguish ok-but-empty (no camera) from an error reply or an
+// unreachable peer (say why, retry with a growing backoff, not every second)
+function checkAvailable(delay){
+  json(me.prefix+'camera/available', null, function(result){
+    if (result && result.status == 'ok') {
+      var tree = result.data || {};
+      for (var k in tree) { waitStatus(); return; }
+      noCamera();
+      return;
+    }
+    cameraError((result && result.msg) ? result.msg : null);
+    var next = Math.min((delay || 1000) * 2, 30000);
+    // stop retrying once this tile has left the page
+    setTimeout(function(){ if (ME.isConnected) checkAvailable(next); }, next);
+  });
+}
+
+function waitStatus(){
+  if (me.status.device) { start(); return; }
+  json(me.prefix+'camera/status', null, function(result){
+    var peer = ME.DATA.peer;
+    if (result.data) {
+      me.status = ME.DATA = result.data;
+      me.status.peer = peer;
+      start();
+    }
+    else setTimeout(waitStatus, 1000);
+  });
+}
+
+// C7: the no-camera state speaks; no test card, no polling
+function noCamera(){
+  showConnecting(false);
+  $(ME).find('.live-img, .live-video').css('display', 'none');
+  // step 0d: no picture, so hide ⛶ (and its exit twin); keep ⚙ so the
+  // camera can still be set up
+  $(ME).find('.fullscreen-button, .fullscreen-exit-button').css('display', 'none');
+  var el = $(ME).find('.live-nocam');
+  el.text('No camera found.').css('display', 'block');
+  peerName(function(name){ el.text('No camera found on ' + name + '.'); });
+}
+
+// step 0b: the camera could not be reached (error reply, peer down). Say
+// why; same no-picture, no-⛶ treatment. The backoff keeps retrying.
+function cameraError(reason){
+  showConnecting(false);
+  $(ME).find('.live-img, .live-video').css('display', 'none');
+  $(ME).find('.fullscreen-button, .fullscreen-exit-button').css('display', 'none');
+  var el = $(ME).find('.live-nocam');
+  el.css('display', 'block');
+  if (reason) { el.text(reason); return; }
+  peerName(function(name){ el.text("Can't reach " + name + "."); });
+}
+
+// the viewing instance's own peer list names the peer; local is this machine
+function peerName(cb){
+  if (!ME.DATA.peer) { cb('this machine'); return; }
+  json('../peer/peers', null, function(r){
+    var list = (r && r.data && r.data.list) || (r && r.data) || [];
+    for (var i = 0; i < list.length; i++) {
+      var p = list[i];
+      if (p && (p.id == ME.DATA.peer || p.uuid == ME.DATA.peer)) { cb(p.displayname || p.name || ME.DATA.peer); return; }
+    }
+    cb(ME.DATA.peer);
+  });
+}
 
 // Live view, best transport first: when the DVR capture stream is running
 // and the browser has MSE, play the camera/live fragmented-MP4 stream in a
 // video element; on any failure fall back to the classic ~2s JPEG polling.
 function start(){
+  // a camera was found: back to picture mode (a prior error/no-camera pass
+  // may have hidden the picture and ⛶)
+  $(ME).find('.live-nocam').css('display', 'none');
+  $(ME).find('.live-img').css('display', '');
+  if (me.fsSupported) $(ME).find('.fullscreen-button').css('display', '');
+  showConnecting(true);
   if (me.status.dvr && window.MediaSource && !me.msefailed && !me.pause) startMSE();
   else next();
+}
+
+// C4: "Connecting…" on the tile's own background while the stream starts;
+// it goes away when the first picture (or the no-signal card) arrives
+function showConnecting(on){
+  $(ME).find('.live-connecting').css('display', on ? 'block' : 'none');
 }
 
 // The exact codec rides in the stream: read it from the codec config box
@@ -111,14 +187,14 @@ function startMSE(){
 
   $(ME).find('.live-img').css('display', 'none');
   $(ME).find('.live-video').css('display', 'block');
+  $(video).off('playing.conn').on('playing.conn', function(){ showConnecting(false); });
   video.muted = true;
   video.src = URL.createObjectURL(ms);
   
   // Wait for video metadata to load before triggering resize
   $(video).off('loadedmetadata');
   $(video).on('loadedmetadata', function() {
-    // Trigger resize event on .live-video to ensure proper sizing in HUD
-    $('.live-video').resize();
+    $(ME).find('.live-video').resize();
   });
   
   if (video.play) video.play().catch(function(){});
@@ -174,6 +250,7 @@ function next(){
 }
 
 $(ME).find('.live-img').on("load", function(){
+  showConnecting(false);
   setTimeout(next, 2000);
 });
 
@@ -184,8 +261,8 @@ $(ME).find('.live-img').on("error", function(){
 $(ME).find('.dvr-settings-button').click(function(e){
   me.pause = true;
   if (me.stopMSE) me.stopMSE();
-  e.selector = ".settings-popup";
-  e.closeselector = ".close-camera-settings";
+  e.selector = $(ME).find(".settings-popup")[0];
+  e.closeselector = $(ME).find(".close-camera-settings")[0];
   e.modal = true;
   e.close = function() { 
     json(me.prefix+'camera/status', null, function(result){
@@ -193,15 +270,9 @@ $(ME).find('.dvr-settings-button').click(function(e){
       me.pause = false; 
       me.msefailed = false;
       start();
-      
-      if (result.data.dvr) {
-        $('.img-wrap').css('height', 'calc(100% - 45px)');
-        $('.dvr-navbar').css('display', 'block');
-      }
-      else {
-        $('.dvr-navbar').css('display', 'none');
-        $('.img-wrap').css('height', '100%)');
-      }
+      // C4: the tabs stay; they say what is off. Tell the tile the new state.
+      $(ME).closest('.dvr-wrap').find('.dvr-navbar').css('display', 'block');
+      $(ME).trigger('camera-status', [result.data]);
     });
   };
   
@@ -211,30 +282,66 @@ $(ME).find('.dvr-settings-button').click(function(e){
   });
 });
 
-$(ME).find('.fullscreen-button').click(function(){
-  var elem = $(ME).find('.live-wrap')[0];
-  if (elem.requestFullscreen) {
-    elem.requestFullscreen();
-  } else if (elem.webkitRequestFullscreen) { /* Safari */
-    elem.webkitRequestFullscreen();
-  } else if (elem.msRequestFullscreen) { /* IE11 */
-    elem.msRequestFullscreen();
+// C3: ⛶ fullscreens the whole picture area (the dvr control's aspect box,
+// so DVR playback and snapshots ride along); standalone fallback is this
+// control's own wrap. The UA stretches the fullscreen element to the
+// screen and object-fit letterboxes the picture.
+function fsTarget(){
+  var pw = $(ME).closest('.picture-wrap');
+  return pw.length ? pw[0] : $(ME).find('.live-wrap')[0];
+}
+
+// C3: icons swap ONLY on fullscreenchange, so every exit path (Esc, the
+// exit button, the browser's own UI) restores them, and a refused request
+// changes nothing because no event fires. Document-level listener: it
+// unhooks itself once this mount leaves the page.
+function fsSync(){
+  if (!ME.isConnected) {
+    document.removeEventListener('fullscreenchange', fsSync);
+    document.removeEventListener('webkitfullscreenchange', fsSync);
+    return;
   }
-  $(this).css('display', 'none');
-  $(ME).find('.fullscreen-exit-button').css('display', 'inline-block');
-  $(ME).find('.dvr-settings-button').css('display', 'none');
+  var fs = document.fullscreenElement || document.webkitFullscreenElement;
+  var active = !!fs && fs.contains(ME);
+  $(ME).find('.fullscreen-button').css('display', active ? 'none' : 'inline-block');
+  $(ME).find('.fullscreen-exit-button').css('display', active ? 'inline-block' : 'none');
+  $(ME).find('.dvr-settings-button').css('display', active ? 'none' : 'inline-block');
+}
+document.addEventListener('fullscreenchange', fsSync);
+document.addEventListener('webkitfullscreenchange', fsSync);
+
+$(ME).find('.fullscreen-button').click(function(){
+  var elem = fsTarget();
+  var p = null;
+  try {
+    if (elem.requestFullscreen) p = elem.requestFullscreen();
+    else if (elem.webkitRequestFullscreen) p = elem.webkitRequestFullscreen(); /* Safari */
+    else { /* iPhone Safari: no element full screen - the video itself can */
+      var v = fsVideo();
+      if (v) v.webkitEnterFullscreen();
+    }
+  } catch(e) {}
+  if (p && p.catch) p.catch(function(){});
 });
 
+// the video showing in this picture area (DVR playback or live) - iPhone
+// Safari offers video-only full screen through webkitEnterFullscreen
+function fsVideo(){
+  var pw = $(ME).closest('.picture-wrap');
+  var scope = pw.length ? pw[0] : ME;
+  var vids = scope.querySelectorAll('video');
+  var fallback = null;
+  for (var i = 0; i < vids.length; i++) {
+    if (!vids[i].webkitEnterFullscreen) continue;
+    if (!fallback) fallback = vids[i];
+    if (vids[i].offsetParent !== null) return vids[i];
+  }
+  return fallback;
+}
 
 $(ME).find('.fullscreen-exit-button').click(function(){
-  if (document.exitFullscreen) {
-    document.exitFullscreen();
-  } else if (document.webkitExitFullscreen) { /* Safari */
-    document.webkitExitFullscreen();
-  } else if (document.msExitFullscreen) { /* IE11 */
-    document.msExitFullscreen();
-  }
-  $(this).css('display', 'none');
-  $(ME).find('.dvr-settings-button').css('display', 'inline-block');
-  $(ME).find('.fullscreen-button').css('display', 'inline-block');
+  try {
+    if (document.exitFullscreen) document.exitFullscreen();
+    else if (document.webkitExitFullscreen) document.webkitExitFullscreen(); /* Safari */
+  } catch(e) {}
 });
