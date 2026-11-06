@@ -1,15 +1,17 @@
 .live-wrap {
+  width:100%;
   height:100%;
   position:relative;
   text-align:center;
 }
 
-.live-wrap .live-img {
-  position:relative;
-  max-width:100%;
-  max-height:100%;
-  margin-left:auto;
-  margin-right:auto;
+/* C3: the live picture fills the tile's picture area (the dvr control's
+   aspect-ratio box), letterboxed at its own ratio when they differ */
+.live-wrap .live-img, .live-wrap .live-video {
+  display:block;
+  width:100%;
+  height:100%;
+  object-fit:contain;
 }
 
 .live-wrap .live-img-ctrls{
@@ -18,11 +20,33 @@
   bottom:20px;
   padding:5px;
   background-color:#88888888;
+  /* C3: above the snapshot/playback overlays that follow img-wrap in the
+     DOM, and still under the kit's modal backdrop (.greyedout, 5) so the
+     bar dims like everything else when a dialog opens */
+  z-index:2;
+}
+
+.live-wrap .live-img-ctrls button{
+  width:32px;
+  height:32px;
+  padding:0;
+  border:none;
+  background-color:transparent;
+  cursor:pointer;
+  vertical-align:middle;
+}
+
+.live-wrap .dvr-settings-button{
+  margin-right:20px;
+}
+
+.live-wrap .dvr-settings-button img{
+  display:block;
+  width:32px;
+  height:32px;
 }
 
 .live-wrap .fullscreen-button, .live-wrap .fullscreen-exit-button{
-  width:32px;
-  height:32px;
   background-image: url(../app/asset/app/fullscreen_icon.png);
   background-size:cover;
   display:inline-block;
@@ -39,13 +63,6 @@
 
 .live-wrap .fullscreen-exit-button:hover{
   background-image: url(../app/asset/app/fullscreen_exit_icon_hover.png);
-}
-
-.live-wrap .dvr-settings-button{
-  width:32px;
-  height:32px;
-  display:inline-block;
-  margin-right:20px;
 }
 
 /* .upper-right centers against the nearest positioned ancestor - anchor

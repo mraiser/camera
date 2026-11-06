@@ -202,30 +202,47 @@ $(ME).find('.dvr-settings-button').click(function(e){
   });
 });
 
-$(ME).find('.fullscreen-button').click(function(){
-  var elem = $(ME).find('.live-wrap')[0];
-  if (elem.requestFullscreen) {
-    elem.requestFullscreen();
-  } else if (elem.webkitRequestFullscreen) { /* Safari */
-    elem.webkitRequestFullscreen();
-  } else if (elem.msRequestFullscreen) { /* IE11 */
-    elem.msRequestFullscreen();
+// C3: ⛶ fullscreens the whole picture area (the dvr control's aspect box,
+// so DVR playback and snapshots ride along); standalone fallback is this
+// control's own wrap. The UA stretches the fullscreen element to the
+// screen and object-fit letterboxes the picture.
+function fsTarget(){
+  var pw = $(ME).closest('.picture-wrap');
+  return pw.length ? pw[0] : $(ME).find('.live-wrap')[0];
+}
+
+// C3: icons swap ONLY on fullscreenchange, so every exit path (Esc, the
+// exit button, the browser's own UI) restores them, and a refused request
+// changes nothing because no event fires. Document-level listener: it
+// unhooks itself once this mount leaves the page.
+function fsSync(){
+  if (!ME.isConnected) {
+    document.removeEventListener('fullscreenchange', fsSync);
+    document.removeEventListener('webkitfullscreenchange', fsSync);
+    return;
   }
-  $(this).css('display', 'none');
-  $(ME).find('.fullscreen-exit-button').css('display', 'inline-block');
-  $(ME).find('.dvr-settings-button').css('display', 'none');
+  var fs = document.fullscreenElement || document.webkitFullscreenElement;
+  var active = !!fs && fs.contains(ME);
+  $(ME).find('.fullscreen-button').css('display', active ? 'none' : 'inline-block');
+  $(ME).find('.fullscreen-exit-button').css('display', active ? 'inline-block' : 'none');
+  $(ME).find('.dvr-settings-button').css('display', active ? 'none' : 'inline-block');
+}
+document.addEventListener('fullscreenchange', fsSync);
+document.addEventListener('webkitfullscreenchange', fsSync);
+
+$(ME).find('.fullscreen-button').click(function(){
+  var elem = fsTarget();
+  var p = null;
+  try {
+    if (elem.requestFullscreen) p = elem.requestFullscreen();
+    else if (elem.webkitRequestFullscreen) p = elem.webkitRequestFullscreen(); /* Safari */
+  } catch(e) {}
+  if (p && p.catch) p.catch(function(){});
 });
 
-
 $(ME).find('.fullscreen-exit-button').click(function(){
-  if (document.exitFullscreen) {
-    document.exitFullscreen();
-  } else if (document.webkitExitFullscreen) { /* Safari */
-    document.webkitExitFullscreen();
-  } else if (document.msExitFullscreen) { /* IE11 */
-    document.msExitFullscreen();
-  }
-  $(this).css('display', 'none');
-  $(ME).find('.dvr-settings-button').css('display', 'inline-block');
-  $(ME).find('.fullscreen-button').css('display', 'inline-block');
+  try {
+    if (document.exitFullscreen) document.exitFullscreen();
+    else if (document.webkitExitFullscreen) document.webkitExitFullscreen(); /* Safari */
+  } catch(e) {}
 });

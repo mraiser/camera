@@ -1,12 +1,10 @@
 <div class='live-wrap'>
-  <video class='live-video imgwidth' muted autoplay playsinline style='display:none; background-color:black;'></video>
+  <video class='live-video' muted autoplay playsinline style='display:none; background-color:black;'></video>
   <img class='live-img'>
-  <div class='imgwidth'>
-    <div class='live-img-ctrls'>
-      <img class='dvr-settings-button' src='../app/asset/app/settings_icon.png'>
-      <div class='fullscreen-button'></div>
-      <div class='fullscreen-exit-button hideme'></div>
-    </div>
+  <div class='live-img-ctrls'>
+    <button type='button' class='dvr-settings-button' title='Settings' aria-label='Settings'><img src='../app/asset/app/settings_icon.png' alt=''></button>
+    <button type='button' class='fullscreen-button' title='Full screen' aria-label='Full screen'></button>
+    <button type='button' class='fullscreen-exit-button' title='Exit full screen' aria-label='Exit full screen'></button>
   </div>
 </div>
 <div class='settings-popup camera-settings-popup'>

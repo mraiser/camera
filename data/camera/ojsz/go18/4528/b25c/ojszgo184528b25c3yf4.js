@@ -36,7 +36,6 @@ me.build = function(){
   $(ME).find('.tab-dvr').click(function(){
     buildTimePicker();
     $(ME).find('.video-wrap').css('display', 'none');
-    $(ME).find('.live-img-ctrls').css('display', 'none');
     var el = $(ME).find('.video-wrap-video');
     el[0].pause();
     el[0].removeAttribute('src');
@@ -48,7 +47,6 @@ me.build = function(){
     me.live.pause = false;
     $(ME).find('.snap-wrap').css('display', 'none');
     $(ME).find('.video-wrap').css('display', 'none');
-    $(ME).find('.live-img-ctrls').css('display', 'block');
     var el = $(ME).find('.video-wrap-video');
     el[0].pause();
     el[0].removeAttribute('src');
@@ -58,7 +56,6 @@ me.build = function(){
 
   $(ME).find('.tab-events').click(function(){
     $(ME).find('.snap-wrap').css('display', 'none');
-    $(ME).find('.live-img-ctrls').css('display', 'none');
     var div = $(ME).find('.event-images');
     div.empty();
     var render = function(result){
@@ -150,42 +147,21 @@ me.loadSnap = function(time, cb){
 };
 
 function adjustSizes(){
+  // C3: a fit before camera/status answers is a no-op, never an error
+  if (!me.status) return;
   var res = me.status.resolution;
-  if (res) {
-    if (typeof res == "string")
-      res = res.split("x");
-  }
-  else res = me.status.resolution = ['1920','1080'];
+  if (typeof res == "string") res = res.split("x");
+  else if (!res) res = ['1920','1080'];
   var resw = parseInt(res[0]);
   var resh = parseInt(res[1]);
-  var r = resw / resh;
-  
-  var navh = me.status.dvr ? $(ME).find('.dvr-navbar').height() : 0;
-  
-  var allh = $(ME).height() - navh;
-  var allw = $(ME).width();
-
-  if (resh > allh) {
-    resw = allh * r;
-    resh = allh;
-    allw = Math.min(allw, resw);
-  }
-
-  if (resw > allw) {
-    resh = allw / r;
-    resw = allw;
-    allh = resh;
-  }
-  
-  $(ME).find('.dvr-wrap').css('height', ''+resh+'px');
-  $(ME).find('.imgwidth').css('width', ''+resw+'px');
-  
-  if (me.status.dvr) {
-    $(ME).find('.dvr-navbar').css('display', 'block');
-  }
-  else {
-    $(ME).find('.dvr-navbar').css('display', 'none');
-  }
+  if (!(resw > 0) || !(resh > 0)) { resw = 1920; resh = 1080; }
+  // rotation turns the frames portrait; the picture box follows them
+  var rot = parseInt(me.status.rotation);
+  if (rot == 90 || rot == 270) { var t = resw; resw = resh; resh = t; }
+  // pure CSS does the fit: full tile width at the picture's own ratio,
+  // whatever order the first fit and the live install happen in
+  $(ME).find('.picture-wrap').css('aspect-ratio', resw + ' / ' + resh);
+  $(ME).find('.dvr-navbar').css('display', me.status.dvr ? 'block' : 'none');
 }
 
 function updateSlide(){
@@ -359,5 +335,11 @@ function parseTime(d){
   return parseDate(d)+':'+padZero(d.getSeconds());
 }
 
-$(window).resize(adjustSizes);
-//console.log($(ME).width()+"x"+$(ME).height()+", "+me.status.resolution);
+// C3: refit from the tile's own box (dragging the Peers panel never fires
+// window.resize, and window handlers piled up one per remount). One
+// observer per mount; it drops itself when the tile leaves the page.
+me.sizer = new ResizeObserver(function(){
+  if (!ME.isConnected) { me.sizer.disconnect(); return; }
+  adjustSizes();
+});
+me.sizer.observe(ME);
