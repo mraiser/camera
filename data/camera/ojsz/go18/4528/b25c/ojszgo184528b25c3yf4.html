@@ -2,7 +2,7 @@
 <div class='wrap dvr-wrap'>
   <div class='picture-wrap'>
     <div class='img-wrap'></div>
-    <div class='video-wrap'><video class="video-wrap-video" controls="true" autoplay="true" allowfullscreen="true" width="100%" height="100%" style="background-color:black;"></video></div>
+    <div class='video-wrap'><video class="video-wrap-video" controls="true" autoplay="true" allowfullscreen="true" width="100%" height="100%"></video></div>
     <div class="snap-wrap"><img class="snap-wrap-img"></div>
   </div>
   <div class='dvr-navbar hideme'>
@@ -13,8 +13,9 @@
     </div>
     <div class='tab-content cam-live selected'></div>
     <div class='tab-content cam-dvr'>
+      <div class='tab-message dvr-message'></div>
       <div class='dvr-images'></div>
-      <center>
+      <center class='dvr-controls'>
         <div class='rvctable dvr-pickers'>
           <span class='dvr-date-part'>
             <div class='dvryearselect timeselect'></div>
@@ -27,7 +28,7 @@
             <div class='dvrsecselect timeselect'></div>
           </span>
         </div>
-        <div class='rvctable'>
+        <div class='rvctable dvr-duration'>
           <div class='textinputlabel durationsliderlable'>Duration:
             <input type='text' class='durationslidervalue'>
           </div>
@@ -44,6 +45,7 @@
       </center>
     </div>
     <div class='tab-content cam-events'>
+      <div class='tab-message events-message'></div>
       <div class='event-images'></div>
     </div>
   </div>

@@ -13,7 +13,8 @@
   position:relative;
   width:100%;
   aspect-ratio:16 / 9;
-  background-color:black;
+  /* C4: no black box - the tile's own background shows while the stream
+     starts, and letterboxing bars match the tile */
   overflow:hidden;
 }
 
@@ -41,17 +42,22 @@
   object-fit:contain;
 }
 
-.dvr-wrap .dvr-navbar {
-  background-color:black;
+/* C4: the tab bar itself is the kit's dark navbar (.navbar-dark); the
+   wrapper adds no background of its own. Tab messages say what's going on. */
+.dvr-wrap .tab-message {
+  display:none;
+  padding:14px 16px;
+  color:var(--text-dim);
 }
 
 .dvr-wrap .event-images, .dvr-wrap .dvr-images {
   position:relative;
   height:110px;
   width:100%;
-  background-color:#222;
+  background-color:var(--panel-2);
   white-space:nowrap;
-  overflow-x:scroll;
+  /* C4: a scrollbar only when the strip overflows */
+  overflow-x:auto;
   overflow-y:hidden;
 }
 
@@ -89,7 +95,7 @@
 }
 
 .dvr-wrap .tab-content, .dvr-wrap .tab-content table {
-  color:white;
+  color:var(--text);
 }
 
 /* step 0b: every picker shows its whole value - compact padding, widths
@@ -125,13 +131,15 @@
   margin-left:20px;
 }
 
-.dvr-wrap .timeselect select{
-  background-color:black;
-  color: white;
+/* C4: ▶ and ⬇ read as disabled when there is nothing to play */
+.dvr-wrap .dvr-controls button[disabled]{
+  opacity:.45;
+  cursor:default;
 }
 
 .dvr-wrap .rvctable {
   display:inline-block;
+  max-width:100%;
   text-align:left;
   margin-left:10px;
   margin-right:10px;
@@ -139,7 +147,9 @@
 }
 
 .dvr-wrap .durationslidervalue{
-  color:black;
+  color:var(--text);
+  background:transparent;
+  border:1px solid var(--line);
   width:40px;
 }
 

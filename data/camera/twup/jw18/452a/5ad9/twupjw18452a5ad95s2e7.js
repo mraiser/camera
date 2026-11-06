@@ -30,8 +30,15 @@ me.ready = function(){
 // and the browser has MSE, play the camera/live fragmented-MP4 stream in a
 // video element; on any failure fall back to the classic ~2s JPEG polling.
 function start(){
+  showConnecting(true);
   if (me.status.dvr && window.MediaSource && !me.msefailed && !me.pause) startMSE();
   else next();
+}
+
+// C4: "Connecting…" on the tile's own background while the stream starts;
+// it goes away when the first picture (or the no-signal card) arrives
+function showConnecting(on){
+  $(ME).find('.live-connecting').css('display', on ? 'block' : 'none');
 }
 
 // The exact codec rides in the stream: read it from the codec config box
@@ -117,6 +124,7 @@ function startMSE(){
 
   $(ME).find('.live-img').css('display', 'none');
   $(ME).find('.live-video').css('display', 'block');
+  $(video).off('playing.conn').on('playing.conn', function(){ showConnecting(false); });
   video.muted = true;
   video.src = URL.createObjectURL(ms);
   
@@ -179,6 +187,7 @@ function next(){
 }
 
 $(ME).find('.live-img').on("load", function(){
+  showConnecting(false);
   setTimeout(next, 2000);
 });
 
@@ -198,7 +207,9 @@ $(ME).find('.dvr-settings-button').click(function(e){
       me.pause = false; 
       me.msefailed = false;
       start();
-      $(ME).closest('.dvr-wrap').find('.dvr-navbar').css('display', result.data.dvr ? 'block' : 'none');
+      // C4: the tabs stay; they say what is off. Tell the tile the new state.
+      $(ME).closest('.dvr-wrap').find('.dvr-navbar').css('display', 'block');
+      $(ME).trigger('camera-status', [result.data]);
     });
   };
   

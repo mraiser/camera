@@ -5,6 +5,20 @@
   text-align:center;
 }
 
+/* C4: "Connecting…" on the tile's own background while the stream starts */
+.live-wrap .live-connecting {
+  display:none;
+  position:absolute;
+  top:50%;
+  left:0;
+  width:100%;
+  transform:translateY(-50%);
+  text-align:center;
+  padding:0 16px;
+  box-sizing:border-box;
+  color:var(--text-dim);
+}
+
 /* C3: the live picture fills the tile's picture area (the dvr control's
    aspect-ratio box), letterboxed at its own ratio when they differ */
 .live-wrap .live-img, .live-wrap .live-video {
