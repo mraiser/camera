@@ -26,15 +26,20 @@ me.ready = function(){
           // C7: no camera - one sentence, no empty selects, no preview retries
           $(ME).find('.cam-fields').css('display', 'none');
           var el = $(ME).find('.nocam-message');
-          el.text('No camera found.').css('display', 'block');
-          if (ME.DATA.peer) json('../peer/peers', null, function(r){
+          el.css('display', 'block');
+          // step 0c: the same fallback chain camera.live uses -
+          // displayname, then name, then the peer id; never "undefined"
+          if (!ME.DATA.peer) { el.text('No camera found on this machine.'); return; }
+          el.text('No camera found.');
+          json('../peer/peers', null, function(r){
             var list = (r && r.data && r.data.list) || (r && r.data) || [];
+            var name = ME.DATA.peer;
             for (var i = 0; i < list.length; i++) {
               var p = list[i];
-              if (p && (p.id == ME.DATA.peer || p.uuid == ME.DATA.peer)) { el.text('No camera found on ' + (p.displayname || p.name) + '.'); return; }
+              if (p && (p.id == ME.DATA.peer || p.uuid == ME.DATA.peer)) { name = p.displayname || p.name || ME.DATA.peer; break; }
             }
+            el.text('No camera found on ' + name + '.');
           });
-          else el.text('No camera found on this machine.');
           return;
         }
         $(ME).find('#select-camera').html(newhtml).on('change', buildDevices);
