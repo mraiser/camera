@@ -21,3 +21,11 @@
 .rvs-sense, .rvs-noise {
   width:100% !important;
 }
+
+/* C9: the current slider value, beside its label */
+.sliderval {
+  color:var(--text);
+  letter-spacing:normal;
+  font-weight:600;
+  margin-left:6px;
+}

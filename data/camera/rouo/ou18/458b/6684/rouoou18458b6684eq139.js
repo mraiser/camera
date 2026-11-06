@@ -6,6 +6,18 @@ me.ready = function(){
   else me.prefix = "../peer/remote/"+ME.DATA.peer+"/";
   
   document.body.api.ui.initSliders(ME);
+
+  // C9: "value / max" beside each motion slider, live while dragging. Bound
+  // before the load trigger('input') below so the first paint is correct.
+  function bindSliderValue(sel, out){
+    var s = $(ME).find(sel), o = $(ME).find(out);
+    var paint = function(){ o.text(s.val() + ' / ' + s.attr('max')); };
+    s.on('input', paint);
+    paint();
+  }
+  bindSliderValue('.rvs-sense', '.rvs-sense-value');
+  bindSliderValue('.rvs-noise', '.rvs-noise-value');
+
   $(ME).find('#camera-settings-go-here').html('');
   json(me.prefix+'camera/settings', null, function(result) {
     if (result.data) {
