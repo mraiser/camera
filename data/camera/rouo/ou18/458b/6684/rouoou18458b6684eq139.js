@@ -6,7 +6,6 @@ me.ready = function(){
   else me.prefix = "../peer/remote/"+ME.DATA.peer+"/";
   
   document.body.api.ui.initSliders(ME);
-  $('.hideme').css('display', 'none');
   $(ME).find('#camera-settings-go-here').html('');
   json(me.prefix+'camera/settings', null, function(result) {
     if (result.data) {
@@ -33,7 +32,7 @@ me.ready = function(){
     else {
       $(ME).find('.dvr-settings-message').css('display', 'block');
       me.settings.peer = ME.DATA.peer;
-      installControl('#camera-settings-go-here', 'camera', 'camera_settings', function(api){}, me.settings);
+      installControl($(ME).find('#camera-settings-go-here')[0], 'camera', 'camera_settings', function(api){}, me.settings);
     }
   });
 };
@@ -58,7 +57,7 @@ $(ME).find('.save-camera-settings').click(function(){
   ME.DATA.motion = $(ME).find('#motion-switch').prop('checked');
   ME.DATA.recording = ME.DATA.dvr;
   json(me.prefix+'camera/settings', "settings="+encodeURIComponent(JSON.stringify(ME.DATA)), function(result) {
-    $('.close-camera-settings').click();
+    $(ME).closest('.settings-popup').find('.close-camera-settings').click();
   });
 });
 

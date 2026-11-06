@@ -133,8 +133,7 @@ function play(start, stop) {
   el.on('loadedmetadata', function() {
     $(ME).find('.video-wrap').css('display', 'block');
     adjustSizes();
-    // Trigger resize event on .live-video to ensure proper sizing in HUD
-    $('.live-video').resize();
+    $(ME).find('.live-video').resize();
   });
 }
 

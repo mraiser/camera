@@ -117,8 +117,7 @@ function startMSE(){
   // Wait for video metadata to load before triggering resize
   $(video).off('loadedmetadata');
   $(video).on('loadedmetadata', function() {
-    // Trigger resize event on .live-video to ensure proper sizing in HUD
-    $('.live-video').resize();
+    $(ME).find('.live-video').resize();
   });
   
   if (video.play) video.play().catch(function(){});
@@ -184,8 +183,8 @@ $(ME).find('.live-img').on("error", function(){
 $(ME).find('.dvr-settings-button').click(function(e){
   me.pause = true;
   if (me.stopMSE) me.stopMSE();
-  e.selector = ".settings-popup";
-  e.closeselector = ".close-camera-settings";
+  e.selector = $(ME).find(".settings-popup")[0];
+  e.closeselector = $(ME).find(".close-camera-settings")[0];
   e.modal = true;
   e.close = function() { 
     json(me.prefix+'camera/status', null, function(result){
@@ -193,15 +192,7 @@ $(ME).find('.dvr-settings-button').click(function(e){
       me.pause = false; 
       me.msefailed = false;
       start();
-      
-      if (result.data.dvr) {
-        $('.img-wrap').css('height', 'calc(100% - 45px)');
-        $('.dvr-navbar').css('display', 'block');
-      }
-      else {
-        $('.dvr-navbar').css('display', 'none');
-        $('.img-wrap').css('height', '100%)');
-      }
+      $(ME).closest('.dvr-wrap').find('.dvr-navbar').css('display', result.data.dvr ? 'block' : 'none');
     });
   };
   
