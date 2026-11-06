@@ -125,14 +125,19 @@
 
 /* Save pins as a footer band at the bottom, always reachable even at
    1280x600; the body content scrolls behind it */
-.camera-settings-popup .save-camera-settings{
+.camera-settings-popup .dialog-footer{
   position:sticky;
   bottom:0;
   z-index:2;
+  background-color:var(--panel);
+  padding-top:12px;
+  margin-top:16px;
+}
+
+.camera-settings-popup .save-camera-settings{
   display:block;
   width:100%;
   box-sizing:border-box;
-  margin:16px 0 0;
 }
 
 /* C5 item 4: under a narrow window, one column with the preview on top.

@@ -29,7 +29,8 @@ function checkAvailable(delay){
     }
     cameraError((result && result.msg) ? result.msg : null);
     var next = Math.min((delay || 1000) * 2, 30000);
-    setTimeout(function(){ checkAvailable(next); }, next);
+    // stop retrying once this tile has left the page
+    setTimeout(function(){ if (ME.isConnected) checkAvailable(next); }, next);
   });
 }
 
