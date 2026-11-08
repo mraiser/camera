@@ -59,6 +59,15 @@ function noCamera(){
   peerName(function(name){ el.text('No camera found on ' + name + '.'); });
 }
 
+// cameras are attached but the settings name none: no picture, no ⛶; ⚙
+// stays, since that is where the camera gets chosen
+function noDevice(){
+  showConnecting(false);
+  $(ME).find('.live-img, .live-video').css('display', 'none');
+  $(ME).find('.fullscreen-button, .fullscreen-exit-button').css('display', 'none');
+  $(ME).find('.live-nocam').text('Choose a camera in ⚙.').css('display', 'block');
+}
+
 // step 0b: the camera could not be reached (error reply, peer down). Say
 // why; same no-picture, no-⛶ treatment. The backoff keeps retrying.
 function cameraError(reason){
@@ -88,6 +97,11 @@ function peerName(cb){
 // and the browser has MSE, play the camera/live fragmented-MP4 stream in a
 // video element; on any failure fall back to the classic ~2s JPEG polling.
 function start(){
+  // a camera is there but none is chosen yet (never saved, or an old save
+  // wrote "null"): say so rather than ask for snapshot?device=null, which
+  // can only answer with the no-signal card
+  var dev = me.status && me.status.device;
+  if (!dev || dev == 'null') { noDevice(); return; }
   // a camera was found: back to picture mode (a prior error/no-camera pass
   // may have hidden the picture and ⛶)
   $(ME).find('.live-nocam').css('display', 'none');

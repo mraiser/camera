@@ -60,8 +60,12 @@ if is_libcamera(&device) {
 }
 else {
   // device comes straight off the URL; V4L2 capture devices live under
-  // /dev - refuse anything else (ffmpeg -i would happily read any path)
-  if !device.starts_with("/dev/") { panic!("snapshot failed: '{}' is not a camera device on this machine", device); }
+  // /dev, and a Mac's or Windows PC's cameras are the avfoundation:/dshow:
+  // values available writes (C8b) - refuse anything else (ffmpeg -i would
+  // happily read any path)
+  let fps = settings(Data::DNull).get_int("framerate");
+  let input = ffmpeg_input_args(std::env::consts::OS, &device, width, height, fps);
+  if input.is_none() && !device.starts_with("/dev/") { panic!("snapshot failed: '{}' is not a camera device on this machine", device); }
   let mut t = t.to_string();
   if rot == 90 || rot == 270 { // FIXME - If camera supports portrait scaling degrades the image unnecessarily
     let q = (width*width)/height;
@@ -70,16 +74,21 @@ else {
   
   let mut o = DataArray::new();
   o.push_string("ffmpeg");
-  o.push_string("-f");
-  o.push_string("v4l2");
-  if format == "H264".to_string() { o.push_string("-vcodec"); o.push_string("h264"); }
-  else if format == "MJPG".to_string() { o.push_string("-vcodec"); o.push_string("mjpeg"); }
-  else if format == "YUYV".to_string() { o.push_string("-vcodec"); o.push_string("yuyv422"); }
-  // FIXME - What are all the others?
-  o.push_string("-video_size");
-  o.push_string(&(width.to_string()+"x"+&height.to_string()));
-  o.push_string("-i");
-  o.push_string(&device);
+  if let Some(input) = input {
+    for a in input { o.push_string(&a); }
+  }
+  else {
+    o.push_string("-f");
+    o.push_string("v4l2");
+    if format == "H264".to_string() { o.push_string("-vcodec"); o.push_string("h264"); }
+    else if format == "MJPG".to_string() { o.push_string("-vcodec"); o.push_string("mjpeg"); }
+    else if format == "YUYV".to_string() { o.push_string("-vcodec"); o.push_string("yuyv422"); }
+    // FIXME - What are all the others?
+    o.push_string("-video_size");
+    o.push_string(&(width.to_string()+"x"+&height.to_string()));
+    o.push_string("-i");
+    o.push_string(&device);
+  }
   o.push_string("-update");
   o.push_string("1");
   o.push_string("-vframes:v");
