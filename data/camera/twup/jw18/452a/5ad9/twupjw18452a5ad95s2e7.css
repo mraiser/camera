@@ -74,23 +74,27 @@
   height:32px;
 }
 
+/* the newbound-icons set (app/_ASSETS/icons): thin light strokes, so a
+   shadow keeps them readable over a bright picture; hover brightens them
+   the way .nb-home does */
 .live-wrap .fullscreen-button, .live-wrap .fullscreen-exit-button{
-  background-image: url(../app/asset/app/fullscreen_icon.png);
+  background-image: url(../app/asset/app/icons/ui/dark/expand.svg);
   background-size:cover;
   display:inline-block;
 }
 
-.live-wrap .fullscreen-button:hover, .live-wrap .fullscreen-exit-button:hover{
-  background-image: url(../app/asset/app/fullscreen_icon_hover.png);
-}
-
 .live-wrap .fullscreen-exit-button{
-  background-image: url(../app/asset/app/fullscreen_exit_icon.png);
+  background-image: url(../app/asset/app/icons/ui/dark/collapse.svg);
   display:none;
 }
 
-.live-wrap .fullscreen-exit-button:hover{
-  background-image: url(../app/asset/app/fullscreen_exit_icon_hover.png);
+.live-wrap .live-img-ctrls button{
+  opacity:.85;
+  filter:drop-shadow(0 0 2px rgba(0,0,0,.8));
+}
+
+.live-wrap .live-img-ctrls button:hover{
+  opacity:1;
 }
 
 /* C5: the kit's dark dialog - graphite body and panel-2 header, the same

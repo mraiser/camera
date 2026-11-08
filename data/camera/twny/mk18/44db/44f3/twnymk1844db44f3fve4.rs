@@ -35,6 +35,11 @@ let jpgpath = storage.to_owned() + &jpg;
     }
 
     o.push_string("ffmpeg");
+    // a keyframe that already exists (a restarted recording reuses segment
+    // numbers) made ffmpeg ask "Overwrite? [y/N]" on the server's terminal
+    // and wait there for ever: overwrite, and never read stdin
+    o.push_string("-y");
+    o.push_string("-nostdin");
     o.push_string("-i");
     o.push_string(&mp4path);
     o.push_string("-update");

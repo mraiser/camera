@@ -22,6 +22,8 @@ use std::sync::Once;
 use crate::camera::camera::available::is_libcamera;
 use crate::camera::camera::available::camera_tool;
 use crate::camera::camera::available::camera_index;
+use crate::camera::camera::available::ffmpeg_input_args;
+use crate::camera::camera::available::ffmpeg_encode_args;
 
 pub fn execute(_: DataObject) -> DataObject {
     use std::panic;
@@ -181,9 +183,11 @@ fn open_camera(tpid:String) {
     let device = settings.get_string("device");
     let format = settings.get_string("format");
     let binding = settings.get_string("resolution");
+    // an unset resolution ("null", or never saved) must not panic this
+    // thread: fall back to 1280x720
     let res = binding.split("x").collect::<Vec<&str>>();
-    let width = res[0].parse::<i64>().unwrap();
-    let height = res[1].parse::<i64>().unwrap();
+    let width = res.get(0).and_then(|s| s.trim().parse::<i64>().ok()).unwrap_or(1280);
+    let height = res.get(1).and_then(|s| s.trim().parse::<i64>().ok()).unwrap_or(720);
     let rot = settings.get_int("rotation");
     let fps = settings.get_int("framerate");
     //let inline_snaps = settings.has("inline_snaps") && Data::as_string(settings.get_property("inline_snaps")) == "true".to_string();
@@ -226,6 +230,14 @@ fn open_camera(tpid:String) {
       o.push(height.to_string());
       o.push("-o".to_owned());
       o.push("-".to_owned());  
+    }
+    else if let Some(input) = ffmpeg_input_args(std::env::consts::OS, &device, width, height, fps) {
+      // C8b: a Mac's or Windows PC's camera hands over raw frames; encode
+      // them to the same H.264 stream rpicam emits
+      syscmd = "ffmpeg".to_string();
+      o.push("-hide_banner".to_string());
+      o.extend(input);
+      o.extend(ffmpeg_encode_args(fps));
     }
     else {
       syscmd = "ffmpeg".to_string();
