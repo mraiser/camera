@@ -29,7 +29,11 @@ me.ready = function(){
     $(ME).find('.storagedir').val(me.settings.storage);
     $(ME).find('.select-fps').val(me.settings.framerate);
     showRecording();
-    var cs = $.extend({}, me.settings, { peer: ME.DATA.peer });
+    // the viewing page decides the peer, never the stored settings: an
+    // old save left this machine's own uuid in botd.properties as "peer",
+    // and $.extend skips an undefined value, so a local page inherited it
+    // and asked peer/remote/<own uuid> ("No such peer")
+    var cs = $.extend({}, me.settings, { peer: ME.DATA.peer || null });
     installControl($(ME).find('.camera-settings-go-here')[0], 'camera', 'camera_settings', function(api){}, cs);
   });
 };
