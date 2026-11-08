@@ -10,8 +10,8 @@ crate-type = ["dylib"]
 simple_moving_average = "0.1.2"
 chrono = "0.4.22"
 image = "0.24.4"
-flowlang = { version="=0.3.47" }
-ndata = "=0.3.17"
+flowlang = { version="0.3.31" }
+ndata = "0.3.17"
 serde = { version = "1.0", features = ["derive"], optional = true }
 serde_json = { version = "1.0", optional = true }
 
