@@ -19,6 +19,7 @@ use core::time::Duration;
 use crate::camera::camera::on_capture::to_path;
 use flowlang::flowlang::system::time::time;
 use std::sync::Once;
+use std::sync::Mutex;
 use crate::camera::camera::available::is_libcamera;
 use crate::camera::camera::available::camera_tool;
 use crate::camera::camera::available::camera_index;
@@ -61,6 +62,7 @@ pub fn execute(_: DataObject) -> DataObject {
 }
 
 pub fn start_recording() -> String {
+  let guard = CAPTURE_LOCK.lock().unwrap_or_else(|e| e.into_inner());
   let mut meta = DataStore::globals().get_object("system").get_object("apps").get_object("camera");
   if meta.has("pid") { meta.put_boolean(&meta.get_string("pid"), false); }
   let pid = unique_session_id();
@@ -74,9 +76,13 @@ pub fn start_recording() -> String {
   streams.put_bytes("mp4", mp4stream.clone());
   
   open_camera(pid.to_owned());
+  drop(guard);
 
+  // the capture now retries until the camera opens; stop waiting if this
+  // recording is stopped or replaced first
   let beat = Duration::from_millis(10);
   while mp4stream.current_len() == 0 {
+    if !meta.has(&pid) || !meta.get_boolean(&pid) { return pid; }
     thread::sleep(beat);
   }
 
@@ -170,6 +176,67 @@ fn write_video(stream:DataBytes, tpid:String){
       println!("Video write end");
     }
   });
+}
+
+// One capture at a time owns the camera: start_recording and start_live
+// swap meta's pid/streams under this lock.
+static CAPTURE_LOCK: Mutex<()> = Mutex::new(());
+
+// How long a live-only capture (no DVR) stays open with nobody watching:
+// long enough to ride out a page reload, short enough to free the camera.
+const LIVE_GRACE_MS: i64 = 5000;
+
+// The capture with this pid should keep going: the server runs, and nobody
+// set its flag false (stop_recording, a newer start_recording, an idle
+// live-only capture, release_idle_capture).
+fn capture_wanted(system:&DataObject, meta:&DataObject, tpid:&str) -> bool {
+  system.get_boolean("running") && meta.has(tpid) && meta.get_boolean(tpid)
+}
+
+// A capture with no consumers at all - no DVR ("mp4") and no live viewer -
+// for LIVE_GRACE_MS. A recording always has its "mp4" stream, so it never
+// goes idle.
+fn live_idle(streams:&DataObject, idle_since:&mut i64) -> bool {
+  if streams.objects().len() > 0 { *idle_since = 0; return false; }
+  let now = time();
+  if *idle_since == 0 { *idle_since = now; }
+  now - *idle_since > LIVE_GRACE_MS
+}
+
+// A live viewer arrived and nothing is capturing (DVR off): open the
+// camera for viewers only - Marc on camera#2: "a live view instead of
+// polling snapshots". The capture closes itself LIVE_GRACE_MS after the
+// last viewer leaves. False when no camera is chosen yet.
+pub fn start_live() -> bool {
+  let _g = CAPTURE_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+  let mut meta = DataStore::globals().get_object("system").get_object("apps").get_object("camera");
+  if meta.has("pid") && meta.has("streams") { return true; }
+  let s = settings(Data::DNull);
+  let device = if s.has("device") { Data::as_string(s.get_property("device")) } else { "".to_string() };
+  if device == "" || device == "null" { return false; }
+  let pid = unique_session_id();
+  meta.put_string("pid", &pid);
+  meta.put_boolean(&pid, true);
+  meta.put_object("streams", DataObject::new());
+  open_camera(pid);
+  true
+}
+
+// snapshot needs the camera to itself (the settings preview). A live-only
+// capture nobody is watching - the tile pauses its video while the
+// settings dialog is open - lets go now rather than after its grace period.
+pub fn release_idle_capture() {
+  let meta = DataStore::globals().get_object("system").get_object("apps").get_object("camera");
+  if !meta.has("pid") || !meta.has("streams") { return; }
+  if meta.get_object("streams").objects().len() > 0 { return; }
+  let pid = meta.get_string("pid");
+  let mut meta = meta;
+  meta.put_boolean(&pid, false);
+  let mut waited = 0;
+  while meta.has(&pid) && waited < 3000 {
+    thread::sleep(Duration::from_millis(50));
+    waited += 50;
+  }
 }
 
 fn open_camera(tpid:String) {
@@ -290,8 +357,29 @@ fn open_camera(tpid:String) {
 //    }
 //    println!("AND THE VIDEO TIME IS {}", time());
     
+    // One capture feeds the DVR (the "mp4" stream) and every live viewer.
+    // A capture nobody asked to stop keeps trying to reopen the camera -
+    // it may have been unplugged or powered off and come back (Marc on
+    // camera#2: "coming back online after hardware recovery"); the DVR
+    // and viewers stay attached to the same streams meanwhile.
+    let firsttime = Once::new();
+    let mut idle_since:i64 = 0;
+    let mut first = true;
+    while capture_wanted(&system, &meta, &tpid) {
+      if !first {
+        println!("Camera stream lost; retrying in 5 s");
+        let mut waited = 0;
+        while waited < 5000 && capture_wanted(&system, &meta, &tpid) && !live_idle(&streams, &mut idle_since) {
+          thread::sleep(Duration::from_millis(250));
+          waited += 250;
+        }
+        if !capture_wanted(&system, &meta, &tpid) || live_idle(&streams, &mut idle_since) { break; }
+      }
+      first = false;
+
     let cmd = Command::new(&syscmd)
-      .args(o)
+      .args(&o)
+      .stdin(Stdio::null())
       .stderr(Stdio::null())
       .stdout(Stdio::piped())
       .spawn();
@@ -300,8 +388,7 @@ fn open_camera(tpid:String) {
       let mut cmd = cmd.unwrap();
       let reader = cmd.stdout.as_mut().unwrap();
       let mut buf = [0; 409600];
-      let firsttime = Once::new();
-      while system.get_boolean("running") && meta.has(&tpid) && meta.get_boolean(&tpid) {
+      while capture_wanted(&system, &meta, &tpid) {
         let x = reader.read(&mut buf);
         if x.is_err() {  break; }
         let x = x.unwrap();
@@ -326,15 +413,23 @@ fn open_camera(tpid:String) {
           b.close_write();
           streams.remove_property(&sid);
         }
+        // a live-only capture whose last viewer left
+        if live_idle(&streams, &mut idle_since) { meta.put_boolean(&tpid, false); break; }
       }  
 
       let _x = cmd.kill();
-      for (_id, stream) in streams.objects() {
-        stream.bytes().close_write();
-      }
+      // reap it - a killed capture left a defunct ffmpeg per restart
+      let _x = cmd.wait();
+    }
+    }
+    for (_id, stream) in streams.objects() {
+      stream.bytes().close_write();
     }
 
-    meta.remove_property("pid");
+    // only our own pid: a newer start_recording has already put its pid
+    // here, and removing that one left live viewers seeing "no capture"
+    // and stop_recording unable to stop it
+    if meta.has("pid") && meta.get_string("pid") == tpid { meta.remove_property("pid"); }
     meta.remove_property(&tpid);
     println!("Camera stream end");
   });

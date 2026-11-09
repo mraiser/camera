@@ -50,6 +50,7 @@ function waitStatus(){
 // C7: the no-camera state speaks; no test card, no polling
 function noCamera(){
   showConnecting(false);
+  picture(false);
   $(ME).find('.live-img, .live-video').css('display', 'none');
   // step 0d: no picture, so hide ⛶ (and its exit twin); keep ⚙ so the
   // camera can still be set up
@@ -63,6 +64,7 @@ function noCamera(){
 // stays, since that is where the camera gets chosen
 function noDevice(){
   showConnecting(false);
+  picture(false);
   $(ME).find('.live-img, .live-video').css('display', 'none');
   $(ME).find('.fullscreen-button, .fullscreen-exit-button').css('display', 'none');
   $(ME).find('.live-nocam').text('Choose a camera in ⚙.').css('display', 'block');
@@ -72,6 +74,7 @@ function noDevice(){
 // why; same no-picture, no-⛶ treatment. The backoff keeps retrying.
 function cameraError(reason){
   showConnecting(false);
+  picture(false);
   $(ME).find('.live-img, .live-video').css('display', 'none');
   $(ME).find('.fullscreen-button, .fullscreen-exit-button').css('display', 'none');
   var el = $(ME).find('.live-nocam');
@@ -108,7 +111,10 @@ function start(){
   $(ME).find('.live-img').css('display', '');
   if (me.fsSupported) $(ME).find('.fullscreen-button').css('display', '');
   showConnecting(true);
-  if (me.status.dvr && window.MediaSource && !me.msefailed && !me.pause) startMSE();
+  // camera.live streams with DVR off too (the server opens the camera for
+  // viewers); a peer that can't answers 404, and the tile falls back to
+  // polling snapshots
+  if (window.MediaSource && !me.msefailed && !me.pause) startMSE();
   else next();
 }
 
@@ -116,6 +122,13 @@ function start(){
 // it goes away when the first picture (or the no-signal card) arrives
 function showConnecting(on){
   $(ME).find('.live-connecting').css('display', on ? 'block' : 'none');
+  if (on) picture(false);
+}
+
+// the ⚙/⛶ bar gets its dark backing only over a picture (where thin light
+// icons need it); on the empty tile it is just the icons
+function picture(on){
+  $(ME).find('.live-wrap').toggleClass('has-picture', !!on);
 }
 
 // The exact codec rides in the stream: read it from the codec config box
@@ -156,9 +169,18 @@ function startMSE(){
   }
   me.stopMSE = teardown;
 
+  var gotdata = false;
   function fail(){
     if (dead) return;
     teardown();
+    // a stream that was playing ended: the capture restarted (settings
+    // saved) or the camera dropped and the server is reopening it -
+    // reconnect instead of dropping to snapshot polling for good
+    if (gotdata) {
+      showConnecting(true);
+      setTimeout(function(){ if (ME.isConnected && !me.pause) start(); }, 2000);
+      return;
+    }
     me.msefailed = true;
     next();
   }
@@ -189,6 +211,7 @@ function startMSE(){
             sb.addEventListener('updateend', pump);
             sb.addEventListener('error', fail);
           }
+          gotdata = true;
           queue.push(r.value);
           pump();
           loop();
@@ -201,7 +224,7 @@ function startMSE(){
 
   $(ME).find('.live-img').css('display', 'none');
   $(ME).find('.live-video').css('display', 'block');
-  $(video).off('playing.conn').on('playing.conn', function(){ showConnecting(false); });
+  $(video).off('playing.conn').on('playing.conn', function(){ showConnecting(false); picture(true); });
   video.muted = true;
   video.src = URL.createObjectURL(ms);
   
@@ -217,7 +240,8 @@ function startMSE(){
   // mid-stream attach on an old capture process, proxy hiccup, ...)
   // degrade to polling instead of showing a black video forever
   setTimeout(function(){
-    if (!dead && !(video.buffered && video.buffered.length)) fail();
+    // bytes that never became video are a real failure, not a reconnect
+    if (!dead && !(video.buffered && video.buffered.length)) { gotdata = false; fail(); }
   }, 12000);
 
   // stay near the live edge; honor pause (the DVR tabs set me.pause)
@@ -265,6 +289,7 @@ function next(){
 
 $(ME).find('.live-img').on("load", function(){
   showConnecting(false);
+  picture(true);
   setTimeout(next, 2000);
 });
 
@@ -280,7 +305,12 @@ $(ME).find('.dvr-settings-button').click(function(e){
   e.modal = true;
   e.close = function() { 
     json(me.prefix+'camera/status', null, function(result){
+      // keep the page's own peer: the status reply carries whatever "peer"
+      // an old save left in botd.properties (this machine's own uuid), and
+      // the next ⚙ then asked peer/remote/<own uuid> - "No such peer"
+      var peer = ME.DATA.peer;
       me.status = ME.DATA = result.data;
+      me.status.peer = peer;
       me.pause = false; 
       me.msefailed = false;
       start();
