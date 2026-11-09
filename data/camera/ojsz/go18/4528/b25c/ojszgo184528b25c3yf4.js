@@ -205,6 +205,10 @@ function adjustSizes(){
   // pure CSS does the fit: full tile width at the picture's own ratio,
   // whatever order the first fit and the live install happen in
   $(ME).find('.picture-wrap').css('aspect-ratio', resw + ' / ' + resh);
+  // the page around the tile can size it from the same ratio (the Camera
+  // page keeps picture + tabs inside the window)
+  var wrap = $(ME).find('.dvr-wrap')[0];
+  if (wrap) wrap.style.setProperty('--cam-ratio', (resw / resh).toFixed(4));
   // C4: the tabs always show; the DVR tab itself says when DVR is off
   $(ME).find('.dvr-navbar').css('display', 'block');
 }

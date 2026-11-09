@@ -26,6 +26,18 @@
   overflow-y:auto;
 }
 
+/* The standalone page: the tile is a centred column whose picture and tab
+   bar fit inside the window - at most 1280px wide, and no wider than the
+   window's height allows at the camera's own ratio (--cam-ratio, set by
+   camera.dvr's adjustSizes; 16:9 until it answers). 150px is the
+   titlebar, the tab bar and a little air. The Peers panel tile is
+   bounded by the panel and keeps its full width. */
+#dvrgoeshere .dvr-wrap {
+  max-width: min(1280px, calc((100vh - 150px) * var(--cam-ratio, 1.7778)));
+  max-width: min(1280px, calc((100dvh - 150px) * var(--cam-ratio, 1.7778)));
+  padding-top: 12px;
+}
+
 #dvrgoeshere {
   /* absolute, not fixed: position:fixed creates a stacking context in
      Blink, trapping every modal opened from inside (the settings
