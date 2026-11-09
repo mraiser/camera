@@ -294,7 +294,12 @@ $(ME).find('.dvr-settings-button').click(function(e){
   e.modal = true;
   e.close = function() { 
     json(me.prefix+'camera/status', null, function(result){
+      // keep the page's own peer: the status reply carries whatever "peer"
+      // an old save left in botd.properties (this machine's own uuid), and
+      // the next ⚙ then asked peer/remote/<own uuid> - "No such peer"
+      var peer = ME.DATA.peer;
       me.status = ME.DATA = result.data;
+      me.status.peer = peer;
       me.pause = false; 
       me.msefailed = false;
       start();

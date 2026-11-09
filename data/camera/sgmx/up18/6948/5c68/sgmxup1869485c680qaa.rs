@@ -51,6 +51,12 @@ thread::spawn(move || {
     args.push("-preset".to_string()); args.push("ultrafast".to_string());
     args.push("-tune".to_string()); args.push("zerolatency".to_string());
     args.push("-pix_fmt".to_string()); args.push("yuv420p".to_string());
+    // a keyframe every second: the mp4 is fragmented at keyframes, and
+    // x264's default (one per 250 frames) delivered the picture to the
+    // browser in ~8 s bursts (a USB MJPEG camera, DVR off)
+    args.push("-g".to_string()); args.push(fps.max(1).to_string());
+    args.push("-keyint_min".to_string()); args.push(fps.max(1).to_string());
+    args.push("-sc_threshold".to_string()); args.push("0".to_string());
   }
   args.push("-movflags".to_string()); args.push("frag_keyframe+empty_moov+default_base_moof".to_string());
   args.push("-f".to_string()); args.push("mp4".to_string());
