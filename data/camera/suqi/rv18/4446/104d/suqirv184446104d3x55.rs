@@ -8,6 +8,8 @@ let rot = rot.trim().parse::<i64>().unwrap_or(0);
 if width <= 0 || height <= 0 {
   return DataStore::new().root.join("camera").join("_ASSETS").join("no_signal.jpg").into_os_string().into_string().unwrap();
 }
+// a viewer-only capture nobody is watching still holds the camera
+release_idle_capture();
 let t1 = temp_dir().join(unique_session_id()+".jpg");
 let temp = t1.to_owned().into_os_string().into_string().unwrap();
 //println!("temp file {:?}", temp);

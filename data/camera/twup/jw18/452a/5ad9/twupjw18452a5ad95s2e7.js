@@ -108,7 +108,10 @@ function start(){
   $(ME).find('.live-img').css('display', '');
   if (me.fsSupported) $(ME).find('.fullscreen-button').css('display', '');
   showConnecting(true);
-  if (me.status.dvr && window.MediaSource && !me.msefailed && !me.pause) startMSE();
+  // camera.live streams with DVR off too (the server opens the camera for
+  // viewers); a peer that can't answers 404, and the tile falls back to
+  // polling snapshots
+  if (window.MediaSource && !me.msefailed && !me.pause) startMSE();
   else next();
 }
 
@@ -156,9 +159,18 @@ function startMSE(){
   }
   me.stopMSE = teardown;
 
+  var gotdata = false;
   function fail(){
     if (dead) return;
     teardown();
+    // a stream that was playing ended: the capture restarted (settings
+    // saved) or the camera dropped and the server is reopening it -
+    // reconnect instead of dropping to snapshot polling for good
+    if (gotdata) {
+      showConnecting(true);
+      setTimeout(function(){ if (ME.isConnected && !me.pause) start(); }, 2000);
+      return;
+    }
     me.msefailed = true;
     next();
   }
@@ -189,6 +201,7 @@ function startMSE(){
             sb.addEventListener('updateend', pump);
             sb.addEventListener('error', fail);
           }
+          gotdata = true;
           queue.push(r.value);
           pump();
           loop();
@@ -217,7 +230,8 @@ function startMSE(){
   // mid-stream attach on an old capture process, proxy hiccup, ...)
   // degrade to polling instead of showing a black video forever
   setTimeout(function(){
-    if (!dead && !(video.buffered && video.buffered.length)) fail();
+    // bytes that never became video are a real failure, not a reconnect
+    if (!dead && !(video.buffered && video.buffered.length)) { gotdata = false; fail(); }
   }, 12000);
 
   // stay near the live edge; honor pause (the DVR tabs set me.pause)

@@ -1,8 +1,13 @@
 let system = DataStore::globals().get_object("system");
 let meta = system.get_object("apps").get_object("camera");
 
-// No capture running (DVR off): the platform 404 sentinel
-if !meta.has("pid") || !meta.has("streams") {
+// No capture running (DVR off): open the camera for viewers (start_live).
+// No camera chosen yet: the platform 404 sentinel, and the tile falls
+// back to its no-camera / snapshot states.
+if !meta.has("pid") && !start_live() {
+  return DataBytes::from_bytes(&"404".as_bytes().to_vec());
+}
+if !meta.has("streams") {
   return DataBytes::from_bytes(&"404".as_bytes().to_vec());
 }
 
