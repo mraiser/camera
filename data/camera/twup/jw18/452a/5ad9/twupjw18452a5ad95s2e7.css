@@ -46,8 +46,18 @@
   position:absolute;
   right:20px;
   bottom:20px;
-  padding:5px;
-  background-color:#88888888;
+  /* sized to its buttons, so a hidden ⛶ (no camera, no stream) leaves
+     no empty slot. On the empty tile it's just the icons; over a picture
+     (.has-picture, set by the js) it gets a dark glass backing so the
+     thin light icons stay readable. The old flat 50% grey read as a slab
+     on the dark tile. */
+  display:flex;
+  align-items:center;
+  gap:20px;
+  padding:6px 8px;
+  border-radius:8px;
+  background-color:transparent;
+  transition:background-color .2s;
   /* C3: above the snapshot/playback overlays that follow img-wrap in the
      DOM, and still under the kit's modal backdrop (.greyedout, 5) so the
      bar dims like everything else when a dialog opens */
@@ -62,10 +72,6 @@
   background-color:transparent;
   cursor:pointer;
   vertical-align:middle;
-}
-
-.live-wrap .dvr-settings-button{
-  margin-right:20px;
 }
 
 .live-wrap .dvr-settings-button img{
@@ -95,6 +101,10 @@
 
 .live-wrap .live-img-ctrls button:hover{
   opacity:1;
+}
+
+.live-wrap.has-picture .live-img-ctrls{
+  background-color:rgba(0,0,0,.4);
 }
 
 /* C5: the kit's dark dialog - graphite body and panel-2 header, the same

@@ -50,6 +50,7 @@ function waitStatus(){
 // C7: the no-camera state speaks; no test card, no polling
 function noCamera(){
   showConnecting(false);
+  picture(false);
   $(ME).find('.live-img, .live-video').css('display', 'none');
   // step 0d: no picture, so hide ⛶ (and its exit twin); keep ⚙ so the
   // camera can still be set up
@@ -63,6 +64,7 @@ function noCamera(){
 // stays, since that is where the camera gets chosen
 function noDevice(){
   showConnecting(false);
+  picture(false);
   $(ME).find('.live-img, .live-video').css('display', 'none');
   $(ME).find('.fullscreen-button, .fullscreen-exit-button').css('display', 'none');
   $(ME).find('.live-nocam').text('Choose a camera in ⚙.').css('display', 'block');
@@ -72,6 +74,7 @@ function noDevice(){
 // why; same no-picture, no-⛶ treatment. The backoff keeps retrying.
 function cameraError(reason){
   showConnecting(false);
+  picture(false);
   $(ME).find('.live-img, .live-video').css('display', 'none');
   $(ME).find('.fullscreen-button, .fullscreen-exit-button').css('display', 'none');
   var el = $(ME).find('.live-nocam');
@@ -119,6 +122,13 @@ function start(){
 // it goes away when the first picture (or the no-signal card) arrives
 function showConnecting(on){
   $(ME).find('.live-connecting').css('display', on ? 'block' : 'none');
+  if (on) picture(false);
+}
+
+// the ⚙/⛶ bar gets its dark backing only over a picture (where thin light
+// icons need it); on the empty tile it is just the icons
+function picture(on){
+  $(ME).find('.live-wrap').toggleClass('has-picture', !!on);
 }
 
 // The exact codec rides in the stream: read it from the codec config box
@@ -214,7 +224,7 @@ function startMSE(){
 
   $(ME).find('.live-img').css('display', 'none');
   $(ME).find('.live-video').css('display', 'block');
-  $(video).off('playing.conn').on('playing.conn', function(){ showConnecting(false); });
+  $(video).off('playing.conn').on('playing.conn', function(){ showConnecting(false); picture(true); });
   video.muted = true;
   video.src = URL.createObjectURL(ms);
   
@@ -279,6 +289,7 @@ function next(){
 
 $(ME).find('.live-img').on("load", function(){
   showConnecting(false);
+  picture(true);
   setTimeout(next, 2000);
 });
 
