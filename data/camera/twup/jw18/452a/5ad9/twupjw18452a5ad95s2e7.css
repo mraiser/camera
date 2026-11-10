@@ -137,6 +137,31 @@
   z-index:2;
 }
 
+/* the header and footer follow the app's Settings dialog (Applications -
+   gear): an 18px title over a small mono line naming the machine, the
+   kit's plain close X, and Cancel / Save at the right of a ruled footer */
+.camera-settings-popup .cs-head{
+  padding:14px 12px 14px 20px;
+  gap:12px;
+}
+.camera-settings-popup .cs-head-left{ min-width:0; }
+.camera-settings-popup .cs-title{
+  font-size:18px;
+  font-weight:500;
+  color:var(--text);
+}
+.camera-settings-popup .cs-sub{
+  font-family:var(--mono);
+  font-size:11px;
+  color:var(--text-dim);
+  margin-top:2px;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.camera-settings-popup .cs-sub:empty{ display:none; }
+.camera-settings-popup .cs-head .popupcard-close{ flex:none; }
+
 /* Save pins as a footer band at the bottom, always reachable even at
    1280x600; the body content scrolls behind it */
 .camera-settings-popup .dialog-footer{
@@ -148,10 +173,29 @@
   margin-top:16px;
 }
 
-.camera-settings-popup .save-camera-settings{
-  display:block;
-  width:100%;
-  box-sizing:border-box;
+.camera-settings-popup .dialog-footer{
+  display:flex;
+  flex-wrap:wrap;
+  align-items:center;
+  justify-content:flex-end;
+  gap:8px 12px;
+  border-top:1px solid var(--line-soft);
+  /* the rule runs the dialog's full width, like Settings: reach out over
+     the body's 24px side padding, and down over its bottom padding */
+  margin:16px -24px -24px;
+  padding:12px 24px;
+}
+.camera-settings-popup .dialog-footer .save-error{ flex:1 0 100%; }
+.camera-settings-popup .cs-foot-btns{
+  display:flex;
+  gap:8px;
+  margin-left:auto;
+}
+.camera-settings-popup .cs-foot-btns button{
+  font-family:inherit;
+  line-height:1.2;
+  padding:10px 14px;
+  white-space:nowrap;
 }
 
 /* C5 item 4: under a narrow window, one column with the preview on top.
