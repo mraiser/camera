@@ -61,6 +61,12 @@ function saveError(r){
   return null;
 }
 
+// Cancel closes without saving, through the dialog's own close (which
+// also resumes the tile's picture)
+$(ME).find('.cancel-camera-settings').click(function(){
+  $(ME).closest('.settings-popup').find('.close-camera-settings').click();
+});
+
 $(ME).find('.save-camera-settings').click(function(){
   var btn = $(this);
   var d = {};

@@ -43,7 +43,7 @@ function waitStatus(){
       me.status.peer = peer;
       start();
     }
-    else setTimeout(waitStatus, 1000);
+    else setTimeout(function(){ if (ME.isConnected) waitStatus(); }, 1000);
   });
 }
 
@@ -263,12 +263,16 @@ function startMSE(){
 }
 
 function watchPause(){
+  if (!ME.isConnected) return;
   if (me.pause) { setTimeout(watchPause, 500); return; }
   start();
 }
 
 var q = 0;
 function next(){
+  // a detached img still loads, so without this the snapshot poll would
+  // run on after the tile leaves the page (and keep the camera open)
+  if (!ME.isConnected) return;
   if (me.pause) { setTimeout(next, 1000); }
   else if (me.status.dvr) {
     $(ME).find('.live-img').prop("src", me.prefix+"camera/last_keyframe/y"+(q++)+".jpg");
@@ -298,6 +302,10 @@ $(ME).find('.live-img').on("error", function(){
 });
 
 $(ME).find('.dvr-settings-button').click(function(e){
+  // the header's second line names the machine whose camera this is
+  peerName(function(name){
+    $(ME).find('.cs-sub').text(name == 'this machine' ? 'This machine' : name);
+  });
   me.pause = true;
   if (me.stopMSE) me.stopMSE();
   e.selector = $(ME).find(".settings-popup")[0];
