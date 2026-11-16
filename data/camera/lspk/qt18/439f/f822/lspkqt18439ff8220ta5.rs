@@ -301,18 +301,38 @@ fn open_camera(tpid:String) {
     let firsttime = Once::new();
     let mut idle_since:i64 = 0;
     let mut first = true;
+    // An unplugged camera can stay unplugged for hours. Say so once per
+    // outage, not on every retry, and space out the retries that start
+    // the capture tool only to watch it fail (5 s doubling to 30 s). A
+    // V4L2 device with no /dev node is checked every 5 s without
+    // starting anything, so it is picked up quickly when plugged back in.
+    let mut streaming = false;
+    let mut outage_said = false;
+    let mut backoff:i64 = 5000;
     while capture_wanted(&system, &meta, &tpid) {
+      let missing = device.starts_with("/dev/") && !Path::new(&device).exists();
       if !first {
-        println!("Camera stream lost; retrying in 5 s");
+        if streaming {
+          println!("Camera stream lost; retrying until {} is back", device);
+          streaming = false;
+          outage_said = true;
+        }
+        else if !outage_said {
+          println!("Camera {} not available; retrying until it is", device);
+          outage_said = true;
+        }
+        let wait = if missing { 5000 } else { backoff };
         let mut waited = 0;
-        while waited < 5000 && capture_wanted(&system, &meta, &tpid) && !live_idle(&streams, &mut idle_since) {
+        while waited < wait && capture_wanted(&system, &meta, &tpid) && !live_idle(&streams, &mut idle_since) {
           thread::sleep(Duration::from_millis(250));
           waited += 250;
         }
         if !capture_wanted(&system, &meta, &tpid) || live_idle(&streams, &mut idle_since) { break; }
       }
       first = false;
+      if device.starts_with("/dev/") && !Path::new(&device).exists() { continue; }
 
+    let mut got = false;
     let cmd = Command::new(&syscmd)
       .args(&o)
       .stdin(Stdio::null())
@@ -320,7 +340,6 @@ fn open_camera(tpid:String) {
       .stdout(Stdio::piped())
       .spawn();
     if cmd.is_ok() {
-      println!("Camera stream begin {}", time());
       let mut cmd = cmd.unwrap();
       let reader = cmd.stdout.as_mut().unwrap();
       let mut buf = [0; 409600];
@@ -329,6 +348,13 @@ fn open_camera(tpid:String) {
         if x.is_err() {  break; }
         let x = x.unwrap();
         if x == 0 { break; }
+        if !got {
+          got = true;
+          streaming = true;
+          outage_said = false;
+          backoff = 5000;
+          println!("Camera stream begin {}", time());
+        }
         
         firsttime.call_once(|| {
           meta.put_int("time_1", time());
@@ -357,6 +383,8 @@ fn open_camera(tpid:String) {
       // reap it - a killed capture left a defunct ffmpeg per restart
       let _x = cmd.wait();
     }
+    // the capture tool failed before a single frame: wait longer next time
+    if !got { backoff = (backoff * 2).min(30000); }
     }
     for (_id, stream) in streams.objects() {
       stream.bytes().close_write();
