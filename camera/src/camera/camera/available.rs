@@ -248,7 +248,12 @@ pub fn ffmpeg_input_args(os:&str, device:&str, width:i64, height:i64, fps:i64) -
     let name = &device["dshow:".len()..];
     if name.trim().len() == 0 || name.contains('"') { return None; }
     let input = "video=".to_string()+name;
-    return Some(["-f", "dshow", "-framerate", &fps, "-video_size", &size, "-i", &input].iter().map(|s| s.to_string()).collect());
+    // No -framerate on the input: DirectShow refuses the whole open ("Could
+    // not set video options") when the camera has no mode at that rate - a
+    // Sony ZV-1 offers 1280x720 at 25 fps only. Take the camera's own rate
+    // and convert to the configured one with -r on the output, so the 2 s
+    // keyframe cadence (ffmpeg_encode_args, the DVR segmenter) still holds.
+    return Some(["-f", "dshow", "-video_size", &size, "-i", &input, "-r", &fps].iter().map(|s| s.to_string()).collect());
   }
   None
 }
