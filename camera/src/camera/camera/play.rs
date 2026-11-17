@@ -88,7 +88,13 @@ pub fn play(nn_path: String) -> String {
       let chunkf = to_path(&storage, time);
       if chunkf.exists() {
         let s = fs::canonicalize(chunkf).unwrap().into_os_string().into_string().unwrap();
-        let s = "file ".to_string()+&s+"\n";
+        // the concat list treats \ as an escape, so a Windows path came out as
+        // "\?C:Users..." and no clip was made: drop canonicalize's \\?\ prefix,
+        // use forward slashes and quote it
+        let s = if cfg!(windows) {
+          let p = s.trim_start_matches(r"\\?\").replace('\\', "/").replace('\'', "'\\''");
+          "file '".to_string()+&p+"'\n"
+        } else { "file ".to_string()+&s+"\n" };
         let _x = f.write(&s.as_bytes()).unwrap();
         b = true;
       }
